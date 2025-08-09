@@ -1,0 +1,58 @@
+{% extends 'store/base.html' %}
+
+{% block title %}Collections de Livres - NovaLearn{% endblock %}
+
+{% block content %}
+<div class="bg-gray-50 min-h-screen">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900">Collections de Livres</h1>
+            <p class="mt-2 text-gray-600">Découvrez nos collections thématiques de livres numériques</p>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for collection in collections %}
+            <div class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300">
+                <div class="relative">
+                    {% if collection.cover_image %}
+                    <img src="{{ collection.cover_image.url }}" alt="{{ collection.title }}" class="w-full h-48 object-cover rounded-t-xl">
+                    {% else %}
+                    <div class="w-full h-48 bg-gradient-to-br from-primary to-blue-600 rounded-t-xl flex items-center justify-center">
+                        <i class="fas fa-books text-white text-4xl"></i>
+                    </div>
+                    {% endif %}
+                    
+                    {% if collection.discount_percentage > 0 %}
+                    <div class="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                        -{{ collection.discount_percentage }}%
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="p-6">
+                    <h3 class="text-xl font-semibold text-gray-900 mb-2">{{ collection.title }}</h3>
+                    <p class="text-gray-600 mb-4">{{ collection.description|truncatewords:20 }}</p>
+                    
+                    <div class="flex items-center justify-between mb-4">
+                        <span class="text-sm text-gray-500">{{ collection.get_books_count }} livre{{ collection.get_books_count|pluralize }}</span>
+                        {% if collection.discount_percentage > 0 %}
+                        <span class="text-sm text-red-500">Économisez {{ collection.get_savings_fcfa }} FCFA</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <div class="text-2xl font-bold text-primary">{{ collection.price_fcfa }} FCFA</div>
+                            <div class="text-sm text-gray-500">{{ collection.price_eur }} EUR</div>
+                        </div>
+                        <a href="{% url 'store:book_collection_detail' collection.slug %}" class="bg-primary hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors">
+                            Voir la collection
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

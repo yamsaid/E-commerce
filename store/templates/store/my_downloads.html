@@ -1,0 +1,224 @@
+{% extends 'store/base.html' %}
+
+{% block title %}Mes Téléchargements - NovaLearn{% endblock %}
+
+{% block content %}
+<div class="bg-gray-50 min-h-screen">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900">Mes Téléchargements</h1>
+            <p class="mt-2 text-gray-600">Accédez à toutes vos formations achetées</p>
+        </div>
+
+        {% if downloads %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for download in downloads %}
+            <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                <!-- Image du produit -->
+                <div class="relative">
+                    {% if download.product.cover_image %}
+                    <img src="{{ download.product.cover_image.url }}" alt="{{ download.product.title }}" class="w-full h-48 object-cover">
+                    {% else %}
+                    <div class="w-full h-48 bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center">
+                        <i class="fas fa-book text-white text-4xl"></i>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Badge de statut -->
+                    <div class="absolute top-4 right-4">
+                        {% if download.can_download %}
+                        <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
+                            <i class="fas fa-check-circle mr-1"></i>
+                            Disponible
+                        </span>
+                        {% else %}
+                        <span class="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-medium">
+                            <i class="fas fa-clock mr-1"></i>
+                            Expiré
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Informations du produit -->
+                <div class="p-6">
+                    <div class="mb-4">
+                        <div class="flex items-center space-x-2 mb-2">
+                            <span class="bg-primary text-white px-2 py-1 rounded text-xs font-semibold">
+                                {{ download.product.get_product_type_display }}
+                            </span>
+                            <span class="text-sm text-gray-500">{{ download.product.category.name }}</span>
+                        </div>
+                        
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">{{ download.product.title }}</h3>
+                        <p class="text-sm text-gray-600 line-clamp-2">{{ download.product.short_description }}</p>
+                    </div>
+
+                    <!-- Métadonnées -->
+                    <div class="space-y-2 mb-4">
+                        <div class="flex items-center justify-between text-sm">
+                            <span class="text-gray-500">Format</span>
+                            <span class="font-medium">{{ download.product.get_file_type_display }}</span>
+                        </div>
+                        {% if download.product.file_size %}
+                        <div class="flex items-center justify-between text-sm">
+                            <span class="text-gray-500">Taille</span>
+                            <span class="font-medium">{{ download.product.file_size }}</span>
+                        </div>
+                        {% endif %}
+                        <div class="flex items-center justify-between text-sm">
+                            <span class="text-gray-500">Téléchargements</span>
+                            <span class="font-medium">{{ download.downloads_count }}/{{ download.max_downloads }}</span>
+                        </div>
+                        <div class="flex items-center justify-between text-sm">
+                            <span class="text-gray-500">Expire le</span>
+                            <span class="font-medium">{{ download.expires_at|date:"d/m/Y" }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="space-y-2">
+                        {% if download.can_download %}
+                        <div class="flex items-center justify-between">
+                            <a href="{% url 'store:download_file' download.download_token %}" 
+                               class="flex-1 bg-primary hover:bg-blue-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors text-center">
+                                <i class="fas fa-download mr-1"></i>
+                                Télécharger
+                            </a>
+                            
+                            <a href="{% url 'store:product_detail' download.product.slug %}" 
+                               class="ml-3 text-primary hover:text-blue-700 text-sm font-medium">
+                                <i class="fas fa-eye mr-1"></i>
+                                Voir
+                            </a>
+                        </div>
+                        
+                        <!-- Bouton de téléchargement compressé pour les formations avec séquences -->
+                        {% if download.product.product_type == 'formation' or download.product.product_type == 'video' %}
+                            {% if download.product.video_sequences.exists %}
+                            <a href="{% url 'store:download_compressed_product' download.product.id %}" 
+                               class="block w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors text-center">
+                                <i class="fas fa-file-archive mr-1"></i>
+                                Télécharger tout le contenu (ZIP)
+                            </a>
+                            {% endif %}
+                        {% endif %}
+                        {% else %}
+                        <div class="flex items-center justify-between">
+                            <button disabled class="flex-1 bg-gray-300 text-gray-500 py-2 px-4 rounded-lg text-sm font-medium cursor-not-allowed">
+                                <i class="fas fa-clock mr-1"></i>
+                                Expiré
+                            </button>
+                            
+                            <a href="{% url 'store:product_detail' download.product.slug %}" 
+                               class="ml-3 text-primary hover:text-blue-700 text-sm font-medium">
+                                <i class="fas fa-eye mr-1"></i>
+                                Voir
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Informations supplémentaires -->
+                    {% if download.can_download %}
+                    <div class="mt-4 p-3 bg-green-50 rounded-lg">
+                        <div class="flex items-center text-sm text-green-800">
+                            <i class="fas fa-info-circle mr-2"></i>
+                            <span>Téléchargements illimités pendant 30 jours</span>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="mt-4 p-3 bg-red-50 rounded-lg">
+                        <div class="flex items-center text-sm text-red-800">
+                            <i class="fas fa-exclamation-triangle mr-2"></i>
+                            <span>Ce lien a expiré ou a atteint sa limite</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Statistiques -->
+        <div class="mt-8 bg-white rounded-xl shadow-sm p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Statistiques de téléchargement</h2>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-primary">{{ downloads.count }}</div>
+                    <div class="text-sm text-gray-600">Total des formations</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-green-600">
+                        {{ downloads|dictsort:"can_download"|length }}
+                    </div>
+                    <div class="text-sm text-gray-600">Disponibles</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-red-600">
+                        {{ downloads|dictsort:"can_download"|length|add:"-"|add:downloads.count }}
+                    </div>
+                    <div class="text-sm text-gray-600">Expirées</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-blue-600">
+                        {% with total_downloads=0 %}
+                            {% for download in downloads %}
+                                {% with total_downloads=total_downloads|add:download.downloads_count %}{% endwith %}
+                            {% endfor %}
+                            {{ total_downloads }}
+                        {% endwith %}
+                    </div>
+                    <div class="text-sm text-gray-600">Téléchargements</div>
+                </div>
+            </div>
+        </div>
+
+        {% else %}
+        <!-- Aucun téléchargement -->
+        <div class="text-center py-12">
+            <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <i class="fas fa-download text-4xl text-gray-400"></i>
+            </div>
+            <h2 class="text-2xl font-semibold text-gray-900 mb-4">Aucun téléchargement</h2>
+            <p class="text-gray-600 mb-8 max-w-md mx-auto">
+                Vous n'avez pas encore acheté de formations. Découvrez notre catalogue et commencez votre apprentissage !
+            </p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <a href="{% url 'store:product_list' %}" class="bg-primary hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-semibold transition-colors">
+                    <i class="fas fa-search mr-2"></i>
+                    Parcourir les formations
+                </a>
+                <a href="{% url 'store:my_orders' %}" class="border border-primary text-primary hover:bg-primary hover:text-white px-8 py-3 rounded-lg font-semibold transition-colors">
+                    <i class="fas fa-shopping-bag mr-2"></i>
+                    Mes commandes
+                </a>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Informations importantes -->
+        <div class="mt-8 bg-blue-50 rounded-xl p-6">
+            <h3 class="text-lg font-semibold text-blue-900 mb-4">Informations importantes</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <h4 class="font-medium text-blue-900 mb-2">Durée de validité</h4>
+                    <ul class="text-sm text-blue-800 space-y-1">
+                        <li>• Les liens sont valides pendant 30 jours</li>
+                        <li>• Téléchargements illimités pendant cette période</li>
+                        <li>• Les liens expirés ne peuvent plus être utilisés</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-medium text-blue-900 mb-2">Support</h4>
+                    <ul class="text-sm text-blue-800 space-y-1">
+                        <li>• Contactez-nous en cas de problème</li>
+                        <li>• Support disponible 24/7</li>
+                        <li>• Garantie de remboursement 30 jours</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

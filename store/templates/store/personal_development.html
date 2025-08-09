@@ -1,0 +1,86 @@
+{% extends 'store/base.html' %}
+
+{% block title %}Développement Personnel - NovaLearn{% endblock %}
+
+{% block content %}
+<div class="bg-gray-50 min-h-screen">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- En-tête -->
+        <div class="text-center mb-12">
+            <h1 class="text-4xl font-bold text-gray-900 mb-4">Développement Personnel</h1>
+            <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                Découvrez notre sélection de livres pour vous accompagner dans votre développement personnel et professionnel
+            </p>
+        </div>
+        
+        <!-- Sections thématiques -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+            {% for section in sections %}
+            <div class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300">
+                <div class="p-6">
+                    {% if section.image %}
+                    <img src="{{ section.image.url }}" alt="{{ section.name }}" class="w-full h-32 object-cover rounded-lg mb-4">
+                    {% else %}
+                    <div class="w-full h-32 bg-gradient-to-br from-green-400 to-blue-500 rounded-lg mb-4 flex items-center justify-center">
+                        <i class="fas fa-brain text-white text-3xl"></i>
+                    </div>
+                    {% endif %}
+                    
+                    <h3 class="text-xl font-semibold text-gray-900 mb-2">{{ section.name }}</h3>
+                    <p class="text-gray-600 mb-4">{{ section.description|truncatewords:15 }}</p>
+                    
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-500">{{ section.get_books_count }} livre{{ section.get_books_count|pluralize }}</span>
+                        <a href="{% url 'store:personal_development_section' section.slug %}" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors">
+                            Explorer
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Livres populaires -->
+        {% if popular_books %}
+        <div class="mb-12">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6">Livres Populaires</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {% for book in popular_books %}
+                <div class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300">
+                    <div class="relative">
+                        {% if book.cover_image %}
+                        <img src="{{ book.cover_image.url }}" alt="{{ book.title }}" class="w-full h-48 object-cover rounded-t-xl">
+                        {% else %}
+                        <div class="w-full h-48 bg-gradient-to-br from-primary to-blue-600 rounded-t-xl flex items-center justify-center">
+                            <i class="fas fa-book text-white text-4xl"></i>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">{{ book.title }}</h3>
+                        <p class="text-gray-600 mb-4">{{ book.short_description|truncatewords:15 }}</p>
+                        
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm text-gray-500"><i class="fas fa-download mr-1"></i>{{ book.downloads_count }} téléchargements</span>
+                        </div>
+                        
+                        <div class="flex items-center justify-between">
+                            {% if book.is_free %}
+                            <div class="text-xl font-bold text-green-600">Gratuit</div>
+                        {% else %}
+                            <div class="text-xl font-bold text-primary">{{ book.price_fcfa }} FCFA</div>
+                        {% endif %}
+                            <a href="{% url 'store:product_detail' book.slug %}" class="bg-primary hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors">
+                                Voir le livre
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %} 

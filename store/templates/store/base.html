@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}NovaLearn - Formations Technologiques{% endblock %}</title>
+    <meta name="description" content="{% block meta_description %}Découvrez nos formations et livres dans le domaine de la technologie et de la motivation. Formations de qualité pour votre développement professionnel.{% endblock %}">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#2563eb',
+                        secondary: '#f97316',
+                        accent: '#10b981',
+                        dark: '#1e293b',
+                        light: '#f8fafc'
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'system-ui', 'sans-serif'],
+                        'display': ['Poppins', 'system-ui', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Alpine.js -->
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="bg-gray-50 font-sans">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-lg sticky top-0 z-50" x-data="{ mobileMenuOpen: false }">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <!-- Logo -->
+                <div class="flex items-center">
+                    <a href="{% url 'store:home' %}" class="flex items-center space-x-2">
+                        <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                            <i class="fas fa-graduation-cap text-white text-sm"></i>
+                        </div>
+                        <span class="text-xl font-bold text-gray-900">NovaLearn</span>
+                    </a>
+                </div>
+
+                <!-- Navigation Desktop -->
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="{% url 'store:home' %}" class="text-gray-700 hover:text-primary transition-colors">Accueil</a>
+                    <a href="{% url 'store:product_list' %}" class="text-gray-700 hover:text-primary transition-colors">Formations</a>
+                    <a href="{% url 'store:book_collections' %}" class="text-gray-700 hover:text-primary transition-colors">Collections</a>
+                    <a href="{% url 'store:personal_development' %}" class="text-gray-700 hover:text-primary transition-colors">Développement Personnel</a>
+                    <a href="{% url 'store:reviews' %}" class="text-gray-700 hover:text-primary transition-colors">Avis</a>
+                    <a href="{% url 'store:contact' %}" class="text-gray-700 hover:text-primary transition-colors">Contact</a>
+                    <div class="relative group">
+                        <button class="text-gray-700 hover:text-primary transition-colors flex items-center">
+                            Catégories
+                            <i class="fas fa-chevron-down ml-1 text-xs"></i>
+                        </button>
+                        <div class="absolute top-full left-0 mt-2 w-48 bg-white rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                            {% for category in categories %}
+                            <a href="{% url 'store:category_detail' category.slug %}" class="block px-4 py-2 text-gray-700 hover:bg-gray-100">{{ category.name }}</a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions Desktop -->
+                <div class="hidden md:flex items-center space-x-4">
+                    <!-- Recherche -->
+                    <div class="relative" x-data="{ searchOpen: false }">
+                        <button @click="searchOpen = !searchOpen" class="text-gray-500 hover:text-primary">
+                            <i class="fas fa-search"></i>
+                        </button>
+                        <div x-show="searchOpen" @click.away="searchOpen = false" class="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg p-4">
+                            <input type="text" placeholder="Rechercher une formation..." class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary">
+                        </div>
+                    </div>
+
+                    <!-- Panier -->
+                    <a href="{% url 'store:cart' %}" class="relative text-gray-500 hover:text-primary">
+                        <i class="fas fa-shopping-cart text-lg"></i>
+                        {% if request.session.cart %}
+                        <span class="absolute -top-2 -right-2 bg-secondary text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                            {{ request.session.cart|length }}
+                        </span>
+                        {% endif %}
+                    </a>
+
+                    <!-- Compte utilisateur -->
+                    {% if user.is_authenticated %}
+                    <div class="relative group" x-data="{ userMenuOpen: false }">
+                        <button @click="userMenuOpen = !userMenuOpen" class="flex items-center space-x-2 text-gray-700 hover:text-primary">
+                            <div class="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+                                <span class="text-white text-sm font-medium">{{ user.username|first|upper }}</span>
+                            </div>
+                            <i class="fas fa-chevron-down text-xs"></i>
+                        </button>
+                        <div x-show="userMenuOpen" @click.away="userMenuOpen = false" class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg">
+                            <a href="{% url 'store:account' %}" class="block px-4 py-2 text-gray-700 hover:bg-gray-100">Mon Compte</a>
+                            <a href="{% url 'store:my_orders' %}" class="block px-4 py-2 text-gray-700 hover:bg-gray-100">Mes Commandes</a>
+                            <a href="{% url 'store:my_downloads' %}" class="block px-4 py-2 text-gray-700 hover:bg-gray-100">Mes Téléchargements</a>
+                            <hr class="my-1">
+                            <a href="{% url 'store:logout' %}" class="block px-4 py-2 text-red-600 hover:bg-red-50">Déconnexion</a>
+                        </div>
+                    </div>
+                    {% else %}
+                    <a href="{% url 'store:login' %}" class="text-gray-700 hover:text-primary">Connexion</a>
+                    <a href="{% url 'store:register' %}" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">Inscription</a>
+                    {% endif %}
+                </div>
+
+                <!-- Menu Mobile -->
+                <div class="md:hidden flex items-center">
+                    <button @click="mobileMenuOpen = !mobileMenuOpen" class="text-gray-500 hover:text-primary">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Menu Mobile -->
+            <div x-show="mobileMenuOpen" class="md:hidden">
+                <div class="px-2 pt-2 pb-3 space-y-1 bg-white border-t">
+                    <a href="{% url 'store:home' %}" class="block px-3 py-2 text-gray-700 hover:text-primary">Accueil</a>
+                    <a href="{% url 'store:product_list' %}" class="block px-3 py-2 text-gray-700 hover:text-primary">Formations</a>
+                    <a href="{% url 'store:book_collections' %}" class="block px-3 py-2 text-gray-700 hover:text-primary">Collections</a>
+                    <a href="{% url 'store:personal_development' %}" class="block px-3 py-2 text-gray-700 hover:text-primary">Développement Personnel</a>
+                    <a href="{% url 'store:reviews' %}" class="block px-3 py-2 text-gray-700 hover:text-primary">Avis</a>
+                    <a href="{% url 'store:contact' %}" class="block px-3 py-2 text-gray-700 hover:text-primary">Contact</a>
+                    <a href="{% url 'store:cart' %}" class="block px-3 py-2 text-gray-700 hover:text-primary">Panier</a>
+                    {% if user.is_authenticated %}
+                    <a href="{% url 'store:account' %}" class="block px-3 py-2 text-gray-700 hover:text-primary">Mon Compte</a>
+                    <a href="{% url 'store:logout' %}" class="block px-3 py-2 text-red-600 hover:text-red-500">Déconnexion</a>
+                    {% else %}
+                    <a href="{% url 'store:login' %}" class="block px-3 py-2 text-gray-700 hover:text-primary">Connexion</a>
+                    <a href="{% url 'store:register' %}" class="block px-3 py-2 bg-primary text-white rounded-lg">Inscription</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Messages -->
+    {% if messages %}
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
+        {% for message in messages %}
+        <div class="mb-4 p-4 rounded-lg {% if message.tags == 'success' %}bg-green-100 text-green-800 border border-green-200{% elif message.tags == 'error' %}bg-red-100 text-red-800 border border-red-200{% elif message.tags == 'warning' %}bg-yellow-100 text-yellow-800 border border-yellow-200{% else %}bg-blue-100 text-blue-800 border border-blue-200{% endif %}">
+            <div class="flex items-center">
+                {% if message.tags == 'success' %}
+                <i class="fas fa-check-circle mr-2"></i>
+                {% elif message.tags == 'error' %}
+                <i class="fas fa-exclamation-circle mr-2"></i>
+                {% elif message.tags == 'warning' %}
+                <i class="fas fa-exclamation-triangle mr-2"></i>
+                {% else %}
+                <i class="fas fa-info-circle mr-2"></i>
+                {% endif %}
+                {{ message }}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Contenu principal -->
+    <main class="min-h-screen">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white mt-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <!-- Logo et description -->
+                <div class="col-span-1 md:col-span-2">
+                    <div class="flex items-center space-x-2 mb-4">
+                        <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                            <i class="fas fa-graduation-cap text-white text-sm"></i>
+                        </div>
+                        <span class="text-xl font-bold">NovaLearn</span>
+                    </div>
+                    <p class="text-gray-300 mb-4">
+                        Votre plateforme de formation en ligne pour maîtriser les technologies modernes et développer vos compétences professionnelles.
+                    </p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-gray-300 hover:text-white">
+                            <i class="fab fa-facebook text-xl"></i>
+                        </a>
+                        <a href="#" class="text-gray-300 hover:text-white">
+                            <i class="fab fa-twitter text-xl"></i>
+                        </a>
+                        <a href="#" class="text-gray-300 hover:text-white">
+                            <i class="fab fa-linkedin text-xl"></i>
+                        </a>
+                        <a href="#" class="text-gray-300 hover:text-white">
+                            <i class="fab fa-youtube text-xl"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Liens rapides -->
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Liens rapides</h3>
+                    <ul class="space-y-2">
+                        <li><a href="{% url 'store:home' %}" class="text-gray-300 hover:text-white">Accueil</a></li>
+                        <li><a href="{% url 'store:product_list' %}" class="text-gray-300 hover:text-white">Formations</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-white">À propos</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-white">Contact</a></li>
+                    </ul>
+                </div>
+
+                <!-- Support -->
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Support</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-300 hover:text-white">Centre d'aide</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-white">FAQ</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-white">Conditions d'utilisation</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-white">Politique de confidentialité</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <hr class="border-gray-700 my-8">
+
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <p class="text-gray-300 text-sm">
+                    © 2024 NovaLearn. Tous droits réservés.
+                </p>
+                <div class="flex space-x-6 mt-4 md:mt-0">
+                    <img src="https://via.placeholder.com/40x25/2563eb/ffffff?text=Visa" alt="Visa" class="h-6">
+                    <img src="https://via.placeholder.com/40x25/2563eb/ffffff?text=MC" alt="Mastercard" class="h-6">
+                    <img src="https://via.placeholder.com/40x25/2563eb/ffffff?text=PayPal" alt="PayPal" class="h-6">
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script>
+        // Fonction pour afficher/masquer les messages
+        function hideMessage(element) {
+            element.style.display = 'none';
+        }
+
+        // Auto-hide messages after 5 seconds (only for flash messages)
+        setTimeout(function() {
+            const messages = document.querySelectorAll('.alert, .message, .notification');
+            messages.forEach(function(message) {
+                setTimeout(function() {
+                    message.style.opacity = '0';
+                    setTimeout(function() {
+                        message.style.display = 'none';
+                    }, 300);
+                }, 5000);
+            });
+        }, 1000);
+    </script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html> 

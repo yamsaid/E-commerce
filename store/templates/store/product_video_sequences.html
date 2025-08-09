@@ -1,0 +1,239 @@
+{% extends 'store/base.html' %}
+
+{% block title %}Séquences - {{ product.title }} - NovaLearn{% endblock %}
+
+{% block content %}
+<div class="bg-gray-50 min-h-screen">
+    <!-- Breadcrumb -->
+    <div class="bg-white shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <nav class="flex" aria-label="Breadcrumb">
+                <ol class="flex items-center space-x-4">
+                    <li>
+                        <a href="{% url 'store:home' %}" class="text-gray-400 hover:text-gray-500">
+                            <i class="fas fa-home"></i>
+                        </a>
+                    </li>
+                    <li>
+                        <div class="flex items-center">
+                            <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+                            <a href="{% url 'store:product_detail' product.slug %}" class="text-gray-400 hover:text-gray-500">{{ product.title }}</a>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="flex items-center">
+                            <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+                            <span class="text-gray-900">Séquences vidéo</span>
+                        </div>
+                    </li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+            <!-- En-tête -->
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900">{{ product.title }}</h1>
+                        <p class="text-gray-600 mt-1">Toutes les séquences vidéo de votre formation</p>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <span class="bg-primary text-white px-3 py-1 rounded-full text-sm font-semibold">
+                            {{ product.get_total_video_count }} séquence{{ product.get_total_video_count|pluralize }}
+                        </span>
+                        <span class="bg-secondary text-white px-3 py-1 rounded-full text-sm font-semibold">
+                            {{ product.get_total_duration_display }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Liste des séquences -->
+            <div class="p-6">
+                {% if sequences %}
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {% for sequence in sequences %}
+                            <div class="bg-gray-50 rounded-lg overflow-hidden hover:shadow-md transition-shadow">
+                                <!-- Thumbnail et lecteur -->
+                                <div class="relative">
+                                    {% if sequence.thumbnail %}
+                                        <img src="{{ sequence.thumbnail.url }}" alt="{{ sequence.title }}" class="w-full h-48 object-cover">
+                                    {% else %}
+                                        <div class="w-full h-48 bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center">
+                                            <i class="fas fa-video text-white text-4xl"></i>
+                                        </div>
+                                    {% endif %}
+                                    
+                                    <!-- Bouton play -->
+                                    <div class="absolute inset-0 flex items-center justify-center">
+                                        <button 
+                                            onclick="playVideo('{{ sequence.video_file.url }}', '{{ sequence.title }}')"
+                                            class="bg-white bg-opacity-90 hover:bg-opacity-100 rounded-full p-4 transition-all transform hover:scale-110"
+                                        >
+                                            <i class="fas fa-play text-primary text-2xl"></i>
+                                        </button>
+                                    </div>
+                                    
+                                    <!-- Badge d'aperçu si applicable -->
+                                    {% if sequence.is_preview %}
+                                        <div class="absolute top-2 right-2">
+                                            <span class="bg-accent text-white px-2 py-1 rounded text-xs font-semibold">
+                                                Aperçu
+                                            </span>
+                                        </div>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Informations de la séquence -->
+                                <div class="p-4">
+                                    <div class="flex items-start justify-between mb-2">
+                                        <h3 class="text-lg font-semibold text-gray-900">{{ sequence.title }}</h3>
+                                        <span class="text-sm text-gray-500">{{ sequence.get_duration_display }}</span>
+                                    </div>
+                                    
+                                    {% if sequence.description %}
+                                        <p class="text-gray-600 text-sm mb-3">{{ sequence.description }}</p>
+                                    {% endif %}
+                                    
+                                    <div class="flex items-center justify-between text-xs text-gray-500">
+                                        <span>Séquence {{ forloop.counter }}</span>
+                                        <span>{{ sequence.created_at|date:"d/m/Y" }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-12">
+                        <i class="fas fa-video text-6xl text-gray-300 mb-4"></i>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2">Aucune séquence disponible</h3>
+                        <p class="text-gray-600">Cette formation ne dispose pas encore de séquences vidéo.</p>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Informations de la formation -->
+            <div class="p-6 bg-gray-50 border-t border-gray-200">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                        <h4 class="font-semibold text-gray-900 mb-2">Progression</h4>
+                        <div class="space-y-2 text-sm text-gray-600">
+                            <div class="flex items-center">
+                                <i class="fas fa-check-circle mr-2 text-green-500"></i>
+                                <span>Formation achetée</span>
+                            </div>
+                            <div class="flex items-center">
+                                <i class="fas fa-video mr-2 text-primary"></i>
+                                <span>{{ product.get_total_video_count }} séquence{{ product.get_total_video_count|pluralize }} disponibles</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h4 class="font-semibold text-gray-900 mb-2">Informations</h4>
+                        <div class="space-y-2 text-sm text-gray-600">
+                            {% if product.level %}
+                                <div class="flex items-center">
+                                    <i class="fas fa-signal mr-2 text-primary"></i>
+                                    <span>{{ product.level }}</span>
+                                </div>
+                            {% endif %}
+                            <div class="flex items-center">
+                                <i class="fas fa-globe mr-2 text-primary"></i>
+                                <span>{{ product.language }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h4 class="font-semibold text-gray-900 mb-2">Actions</h4>
+                        <div class="space-y-2">
+                            <a href="{% url 'store:product_detail' product.slug %}" class="block text-sm text-primary hover:text-primary-dark">
+                                <i class="fas fa-arrow-left mr-1"></i>Retour aux détails
+                            </a>
+                            <a href="{% url 'store:my_downloads' %}" class="block text-sm text-primary hover:text-primary-dark">
+                                <i class="fas fa-download mr-1"></i>Mes téléchargements
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal pour le lecteur vidéo -->
+<div id="videoModal" class="fixed inset-0 bg-black bg-opacity-75 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-lg max-w-4xl w-full max-h-full overflow-hidden">
+            <!-- En-tête du modal -->
+            <div class="flex items-center justify-between p-4 border-b border-gray-200">
+                <h3 id="videoTitle" class="text-lg font-semibold text-gray-900"></h3>
+                <button onclick="closeVideoModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <!-- Lecteur vidéo -->
+            <div class="relative" style="aspect-ratio: 16/9;">
+                <video 
+                    id="modalVideoPlayer" 
+                    class="w-full h-full object-cover"
+                    controls
+                    preload="metadata"
+                >
+                    Votre navigateur ne supporte pas la lecture de vidéos.
+                </video>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function playVideo(videoUrl, title) {
+    const modal = document.getElementById('videoModal');
+    const video = document.getElementById('modalVideoPlayer');
+    const videoTitle = document.getElementById('videoTitle');
+    
+    // Configurer la vidéo
+    video.src = videoUrl;
+    videoTitle.textContent = title;
+    
+    // Afficher le modal
+    modal.classList.remove('hidden');
+    
+    // Charger et jouer la vidéo
+    video.load();
+    video.play();
+}
+
+function closeVideoModal() {
+    const modal = document.getElementById('videoModal');
+    const video = document.getElementById('modalVideoPlayer');
+    
+    // Arrêter la vidéo
+    video.pause();
+    video.src = '';
+    
+    // Masquer le modal
+    modal.classList.add('hidden');
+}
+
+// Fermer le modal en cliquant à l'extérieur
+document.getElementById('videoModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeVideoModal();
+    }
+});
+
+// Fermer le modal avec la touche Escape
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeVideoModal();
+    }
+});
+</script>
+{% endblock %} 

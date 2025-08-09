@@ -1,0 +1,283 @@
+{% extends 'store/base.html' %}
+
+{% block title %}Paiement - NovaLearn{% endblock %}
+
+{% block extra_css %}
+<script src="https://js.stripe.com/v3/"></script>
+{% endblock %}
+
+{% block content %}
+<div class="bg-gray-50 min-h-screen">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900">Paiement sécurisé</h1>
+            <p class="mt-2 text-gray-600">Commande #{{ order.order_number }}</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Options de paiement -->
+            <div>
+                <div class="bg-white rounded-xl shadow-sm p-6">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-6">Choisissez votre méthode de paiement</h2>
+                    
+                    <!-- Carte bancaire -->
+                    <div class="mb-6">
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <div class="flex items-center mb-4">
+                                <input type="radio" id="payment_stripe" name="payment_method" value="stripe" checked
+                                       class="h-4 w-4 text-primary focus:ring-primary border-gray-300">
+                                <label for="payment_stripe" class="ml-3 flex items-center">
+                                    <i class="fas fa-credit-card text-gray-400 mr-2"></i>
+                                    <span class="font-medium">Carte bancaire</span>
+                                </label>
+                            </div>
+                            
+                            <div id="stripe-form" class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Numéro de carte</label>
+                                    <div id="card-number" class="w-full px-3 py-2 border border-gray-300 rounded-lg"></div>
+                                </div>
+                                
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Date d'expiration</label>
+                                        <div id="card-expiry" class="w-full px-3 py-2 border border-gray-300 rounded-lg"></div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">CVC</label>
+                                        <div id="card-cvc" class="w-full px-3 py-2 border border-gray-300 rounded-lg"></div>
+                                    </div>
+                                </div>
+                                
+                                <div id="card-errors" class="text-red-600 text-sm hidden"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Mobile Money -->
+                    <div class="mb-6">
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <div class="flex items-center mb-4">
+                                <input type="radio" id="payment_mobile" name="payment_method" value="mobile_money"
+                                       class="h-4 w-4 text-primary focus:ring-primary border-gray-300">
+                                <label for="payment_mobile" class="ml-3 flex items-center">
+                                    <i class="fas fa-mobile-alt text-gray-400 mr-2"></i>
+                                    <span class="font-medium">Mobile Money</span>
+                                </label>
+                            </div>
+                            
+                            <div id="mobile-form" class="space-y-4 hidden">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Opérateur</label>
+                                    <select class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary">
+                                        <option value="">Sélectionnez un opérateur</option>
+                                        <option value="orange">Orange Money</option>
+                                        <option value="moov">Moov Money</option>
+                                        <option value="mtn">MTN Money</option>
+                                    </select>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Numéro de téléphone</label>
+                                    <input type="tel" placeholder="+225 01234567" 
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PayPal -->
+                    <div class="mb-6">
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <div class="flex items-center mb-4">
+                                <input type="radio" id="payment_paypal" name="payment_method" value="paypal"
+                                       class="h-4 w-4 text-primary focus:ring-primary border-gray-300">
+                                <label for="payment_paypal" class="ml-3 flex items-center">
+                                    <i class="fab fa-paypal text-gray-400 mr-2"></i>
+                                    <span class="font-medium">PayPal</span>
+                                </label>
+                            </div>
+                            
+                            <div id="paypal-form" class="hidden">
+                                <p class="text-sm text-gray-600">Vous serez redirigé vers PayPal pour finaliser votre paiement.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bouton de paiement -->
+                    <button id="pay-button" class="w-full bg-primary hover:bg-blue-700 text-white py-3 rounded-lg font-semibold transition-colors">
+                        <i class="fas fa-lock mr-2"></i>
+                        Payer {{ order.total_fcfa }} FCFA
+                    </button>
+                </div>
+            </div>
+
+            <!-- Résumé de la commande -->
+            <div>
+                <div class="bg-white rounded-xl shadow-sm p-6 sticky top-24">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Résumé de la commande</h3>
+                    
+                    <!-- Articles -->
+                    <div class="space-y-3 mb-6">
+                        {% for item in order.items.all %}
+                        <div class="flex items-center space-x-3">
+                            <div class="flex-shrink-0">
+                                {% if item.product.cover_image %}
+                                <img src="{{ item.product.cover_image.url }}" alt="{{ item.product.title }}" class="w-12 h-12 object-cover rounded-lg">
+                                {% else %}
+                                <div class="w-12 h-12 bg-gradient-to-br from-primary to-blue-600 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-book text-white"></i>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <h4 class="text-sm font-medium text-gray-900 truncate">{{ item.product.title }}</h4>
+                                <p class="text-xs text-gray-500">Quantité: {{ item.quantity }}</p>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-sm font-medium text-primary">{{ item.price_fcfa }} FCFA</div>
+                                <div class="text-xs text-gray-500">{{ item.price_eur }} EUR</div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Totaux -->
+                    <div class="border-t border-gray-200 pt-4 space-y-3">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">Sous-total</span>
+                            <span class="font-medium">{{ order.subtotal_fcfa }} FCFA</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">TVA (18%)</span>
+                            <span class="font-medium">{{ tax_fcfa|floatformat:0 }} FCFA</span>
+                        </div>
+                        <hr class="border-gray-200">
+                        <div class="flex justify-between text-lg font-semibold">
+                            <span>Total</span>
+                            <span class="text-primary">{{ order.total_fcfa }} FCFA</span>
+                        </div>
+                        <div class="text-sm text-gray-500 text-right">
+                            {{ order.total_eur }} EUR
+                        </div>
+                    </div>
+
+                    <!-- Informations de sécurité -->
+                    <div class="mt-6 pt-6 border-t border-gray-200">
+                        <div class="space-y-3 text-sm text-gray-600">
+                            <div class="flex items-center space-x-2">
+                                <i class="fas fa-shield-alt text-green-500"></i>
+                                <span>Paiement 100% sécurisé</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <i class="fas fa-lock text-blue-500"></i>
+                                <span>Chiffrement SSL/TLS</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <i class="fas fa-undo text-purple-500"></i>
+                                <span>Garantie 30 jours</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Configuration Stripe (à remplacer par vos vraies clés)
+const stripe = Stripe('pk_test_your_stripe_public_key');
+const elements = stripe.elements();
+
+// Créer les éléments de carte
+const cardNumber = elements.create('cardNumber');
+const cardExpiry = elements.create('cardExpiry');
+const cardCvc = elements.create('cardCvc');
+
+// Monter les éléments
+cardNumber.mount('#card-number');
+cardExpiry.mount('#card-expiry');
+cardCvc.mount('#card-cvc');
+
+// Gestion des erreurs
+const displayError = document.getElementById('card-errors');
+cardNumber.addEventListener('change', ({error}) => {
+    if (error) {
+        displayError.textContent = error.message;
+        displayError.classList.remove('hidden');
+    } else {
+        displayError.classList.add('hidden');
+    }
+});
+
+// Gestion des méthodes de paiement
+document.querySelectorAll('input[name="payment_method"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        // Masquer tous les formulaires
+        document.getElementById('stripe-form').classList.add('hidden');
+        document.getElementById('mobile-form').classList.add('hidden');
+        document.getElementById('paypal-form').classList.add('hidden');
+        
+        // Afficher le formulaire correspondant
+        if (this.value === 'stripe') {
+            document.getElementById('stripe-form').classList.remove('hidden');
+        } else if (this.value === 'mobile_money') {
+            document.getElementById('mobile-form').classList.remove('hidden');
+        } else if (this.value === 'paypal') {
+            document.getElementById('paypal-form').classList.remove('hidden');
+        }
+    });
+});
+
+// Gestion du paiement
+document.getElementById('pay-button').addEventListener('click', async function(e) {
+    e.preventDefault();
+    
+    const selectedMethod = document.querySelector('input[name="payment_method"]:checked').value;
+    
+    if (selectedMethod === 'stripe') {
+        // Paiement Stripe
+        const {error, paymentMethod} = await stripe.createPaymentMethod({
+            type: 'card',
+            card: cardNumber,
+        });
+        
+        if (error) {
+            displayError.textContent = error.message;
+            displayError.classList.remove('hidden');
+        } else {
+            // Envoyer le paymentMethod.id au serveur
+            fetch('{% url "store:payment" order.order_number %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: JSON.stringify({
+                    payment_method_id: paymentMethod.id,
+                    payment_type: 'stripe'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = data.redirect_url;
+                } else {
+                    displayError.textContent = data.error;
+                    displayError.classList.remove('hidden');
+                }
+            });
+        }
+    } else if (selectedMethod === 'mobile_money') {
+        // Paiement Mobile Money
+        // Logique pour Mobile Money
+        alert('Paiement Mobile Money - En cours de développement');
+    } else if (selectedMethod === 'paypal') {
+        // Paiement PayPal
+        // Redirection vers PayPal
+        window.location.href = '{% url "store:payment" order.order_number %}?method=paypal';
+    }
+});
+</script>
+{% endblock %} 

@@ -1,0 +1,153 @@
+{% extends 'store/base.html' %}
+
+{% block title %}Contact - NovaLearn{% endblock %}
+{% block meta_description %}Contactez-nous pour toute question sur nos formations et services. Notre équipe est là pour vous aider.{% endblock %}
+
+{% block content %}
+<div class="bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <!-- En-tête -->
+        <div class="text-center mb-12">
+            <h1 class="text-4xl font-bold text-gray-900 mb-4">Contactez-nous</h1>
+            <p class="text-xl text-gray-600 max-w-2xl mx-auto">
+                Nous sommes là pour vous aider. N'hésitez pas à nous contacter pour toute question sur nos formations, services ou pour un partenariat.
+            </p>
+        </div>
+
+        <div class="grid lg:grid-cols-2 gap-12">
+            <!-- Formulaire de contact -->
+            <div class="bg-white rounded-lg shadow-lg p-8">
+                <h2 class="text-2xl font-bold text-gray-900 mb-6">Envoyez-nous un message</h2>
+                
+                {% if messages %}
+                <div class="mb-6">
+                    {% for message in messages %}
+                    <div class="p-4 rounded-lg {% if message.tags == 'success' %}bg-green-100 text-green-700{% elif message.tags == 'error' %}bg-red-100 text-red-700{% else %}bg-blue-100 text-blue-700{% endif %}">
+                        {{ message }}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <form method="post" class="space-y-6">
+                    {% csrf_token %}
+                    
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="name" class="block text-sm font-medium text-gray-700 mb-2">Nom complet *</label>
+                            <input type="text" id="name" name="name" required
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                        </div>
+                        
+                        <div>
+                            <label for="email" class="block text-sm font-medium text-gray-700 mb-2">Email *</label>
+                            <input type="email" id="email" name="email" required
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label for="phone" class="block text-sm font-medium text-gray-700 mb-2">Téléphone</label>
+                        <input type="tel" id="phone" name="phone"
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                    </div>
+                    
+                    <div>
+                        <label for="contact_type" class="block text-sm font-medium text-gray-700 mb-2">Type de contact *</label>
+                        <select id="contact_type" name="contact_type" required
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                            {% for value, label in contact_types %}
+                            <option value="{{ value }}">{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label for="subject" class="block text-sm font-medium text-gray-700 mb-2">Sujet *</label>
+                        <input type="text" id="subject" name="subject" required
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                    </div>
+                    
+                    <div>
+                        <label for="message" class="block text-sm font-medium text-gray-700 mb-2">Message *</label>
+                        <textarea id="message" name="message" rows="6" required
+                                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"></textarea>
+                    </div>
+                    
+                    <button type="submit" 
+                            class="w-full bg-primary text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-paper-plane mr-2"></i>
+                        Envoyer le message
+                    </button>
+                </form>
+            </div>
+
+            <!-- Informations de contact -->
+            <div class="space-y-8">
+                <div class="bg-gradient-to-br from-primary to-blue-700 rounded-lg p-8 text-white">
+                    <h3 class="text-2xl font-bold mb-6">Informations de contact</h3>
+                    
+                    <div class="space-y-6">
+                        <div class="flex items-start space-x-4">
+                            <div class="w-10 h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <i class="fas fa-envelope text-white"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold mb-1">Email</h4>
+                                <p class="text-blue-100">contact@novalearn.com</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start space-x-4">
+                            <div class="w-10 h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <i class="fas fa-phone text-white"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold mb-1">Téléphone</h4>
+                                <p class="text-blue-100">+225 0123456789</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start space-x-4">
+                            <div class="w-10 h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <i class="fas fa-clock text-white"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold mb-1">Horaires</h4>
+                                <p class="text-blue-100">Lun-Ven: 8h-18h<br>Sam: 9h-13h</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FAQ -->
+                <div class="bg-white rounded-lg shadow-lg p-8">
+                    <h3 class="text-2xl font-bold text-gray-900 mb-6">Questions fréquentes</h3>
+                    
+                    <div class="space-y-4">
+                        <div class="border-b border-gray-200 pb-4">
+                            <h4 class="font-semibold text-gray-900 mb-2">Comment accéder à mes formations achetées ?</h4>
+                            <p class="text-gray-600">Après votre achat, vous recevrez un email avec les liens de téléchargement. Vous pouvez également accéder à vos téléchargements depuis votre espace client.</p>
+                        </div>
+                        
+                        <div class="border-b border-gray-200 pb-4">
+                            <h4 class="font-semibold text-gray-900 mb-2">Puis-je télécharger plusieurs fois ?</h4>
+                            <p class="text-gray-600">Oui, vous avez droit à 3 téléchargements par formation achetée, valables pendant 30 jours après l'achat.</p>
+                        </div>
+                        
+                        <div class="border-b border-gray-200 pb-4">
+                            <h4 class="font-semibold text-gray-900 mb-2">Comment fonctionne le remboursement ?</h4>
+                            <p class="text-gray-600">Nous offrons une garantie de satisfaction de 30 jours. Si vous n'êtes pas satisfait, contactez-nous pour un remboursement complet.</p>
+                        </div>
+                        
+                        <div>
+                            <h4 class="font-semibold text-gray-900 mb-2">Proposez-vous des formations en entreprise ?</h4>
+                            <p class="text-gray-600">Oui, nous proposons des formations personnalisées pour les entreprises. Contactez-nous pour discuter de vos besoins.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

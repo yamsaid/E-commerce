@@ -1,0 +1,282 @@
+{% extends 'store/base.html' %}
+
+{% block title %}Aperçu - {{ product.title }} - NovaLearn{% endblock %}
+
+{% block content %}
+<div class="bg-gray-50 min-h-screen">
+    <!-- Breadcrumb -->
+    <div class="bg-white shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <nav class="flex" aria-label="Breadcrumb">
+                <ol class="flex items-center space-x-4">
+                    <li>
+                        <a href="{% url 'store:home' %}" class="text-gray-400 hover:text-gray-500">
+                            <i class="fas fa-home"></i>
+                        </a>
+                    </li>
+                    <li>
+                        <div class="flex items-center">
+                            <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+                            <a href="{% url 'store:product_detail' product.slug %}" class="text-gray-400 hover:text-gray-500">{{ product.title }}</a>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="flex items-center">
+                            <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+                            <span class="text-gray-900">Aperçu</span>
+                        </div>
+                    </li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+            <!-- En-tête -->
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900">{{ product.title }}</h1>
+                        <p class="text-gray-600 mt-1">Aperçu de la formation</p>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <span class="bg-primary text-white px-3 py-1 rounded-full text-sm font-semibold">
+                            {{ product.get_product_type_display }}
+                        </span>
+                        <a href="{% url 'store:product_detail' product.slug %}" class="bg-secondary text-white px-4 py-2 rounded-lg hover:bg-secondary-dark transition-colors">
+                            Voir la formation complète
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lecteur vidéo -->
+            <div class="p-6">
+                {% if preview_sequence %}
+                    <div class="relative">
+                        <!-- Lecteur vidéo -->
+                        <div class="relative bg-black rounded-lg overflow-hidden" style="aspect-ratio: 16/9;">
+                            <video 
+                                id="videoPlayer" 
+                                class="w-full h-full object-cover"
+                                controls
+                                preload="metadata"
+                                poster="{{ preview_sequence.thumbnail.url|default:product.cover_image.url }}"
+                                onerror="console.error('Erreur de chargement de la vidéo')"
+                                autoplay
+                                muted
+                            >
+                                <source src="{{ preview_sequence.video_file.url }}" type="video/mp4">
+                                Votre navigateur ne supporte pas la lecture de vidéos.
+                            </video>
+                        </div>
+
+                        <!-- Informations de la séquence -->
+                        <div class="mt-4">
+                            <h3 class="text-lg font-semibold text-gray-900">{{ preview_sequence.title }}</h3>
+                            {% if preview_sequence.description %}
+                                <p class="text-gray-600 mt-2">{{ preview_sequence.description }}</p>
+                            {% endif %}
+                            <div class="flex items-center space-x-4 mt-3 text-sm text-gray-500">
+                                <span><i class="fas fa-clock mr-1"></i>{{ preview_sequence.get_duration_display }}</span>
+                                <span><i class="fas fa-play mr-1"></i>Aperçu gratuit</span>
+                            </div>
+                            
+                            <!-- Bouton pour activer le volume -->
+                            <div class="mt-3">
+                                <button id="enableVolumeBtn" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded text-sm transition-colors font-semibold">
+                                    <i class="fas fa-volume-up mr-1"></i>Activer le son (Firefox)
+                                </button>
+                                <div class="mt-2 text-xs text-gray-500">
+                                    <p>Cliquez pour activer le son. Si vous n'entendez rien, vérifiez que Firefox n'a pas bloqué l'audio pour ce site.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="text-center py-12">
+                        <i class="fas fa-video text-6xl text-gray-300 mb-4"></i>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2">Aucun aperçu disponible</h3>
+                        <p class="text-gray-600 mb-6">Cette formation ne dispose pas encore d'aperçu vidéo.</p>
+                        <a href="{% url 'store:product_detail' product.slug %}" class="bg-primary text-white px-6 py-3 rounded-lg hover:bg-primary-dark transition-colors">
+                            Voir les détails de la formation
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Informations de la formation -->
+            <div class="p-6 bg-gray-50 border-t border-gray-200">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                        <h4 class="font-semibold text-gray-900 mb-2">Contenu de la formation</h4>
+                        <div class="space-y-2 text-sm text-gray-600">
+                            <div class="flex items-center">
+                                <i class="fas fa-video mr-2 text-primary"></i>
+                                <span>{{ product.get_total_video_count }} séquence{{ product.get_total_video_count|pluralize }}</span>
+                            </div>
+                            <div class="flex items-center">
+                                <i class="fas fa-clock mr-2 text-primary"></i>
+                                <span>{{ product.get_total_duration_display }}</span>
+                            </div>
+                            <div class="flex items-center">
+                                <i class="fas fa-file mr-2 text-primary"></i>
+                                <span>{{ product.file_type|upper }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h4 class="font-semibold text-gray-900 mb-2">Niveau</h4>
+                        <div class="space-y-2 text-sm text-gray-600">
+                            {% if product.level %}
+                                <div class="flex items-center">
+                                    <i class="fas fa-signal mr-2 text-primary"></i>
+                                    <span>{{ product.level }}</span>
+                                </div>
+                            {% endif %}
+                            <div class="flex items-center">
+                                <i class="fas fa-globe mr-2 text-primary"></i>
+                                <span>{{ product.language }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h4 class="font-semibold text-gray-900 mb-2">Prix</h4>
+                        <div class="space-y-2 text-sm text-gray-600">
+                            <div class="flex items-center">
+                                <i class="fas fa-tag mr-2 text-primary"></i>
+                                {% if product.is_free %}
+                            <span class="text-green-600 font-semibold">Gratuit</span>
+                        {% else %}
+                            <span>{{ product.price_fcfa }} FCFA</span>
+                        {% endif %}
+                            </div>
+                            <div class="flex items-center">
+                                <i class="fas fa-euro-sign mr-2 text-primary"></i>
+                                {% if not product.is_free %}
+                            <span>{{ product.price_eur }} EUR</span>
+                        {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const video = document.getElementById('videoPlayer');
+    const enableVolumeBtn = document.getElementById('enableVolumeBtn');
+    
+    if (video && enableVolumeBtn) {
+        // Fonction pour forcer l'activation du volume (spécialement pour Firefox)
+        function forceEnableVolume() {
+            console.log('Début de l\'activation du volume...');
+            
+            // Première tentative
+            video.muted = false;
+            video.volume = 1.0;
+            console.log('Première tentative - Muted:', video.muted, 'Volume:', video.volume);
+            
+            // Deuxième tentative après un délai
+            setTimeout(() => {
+                video.muted = false;
+                video.volume = 1.0;
+                console.log('Deuxième tentative - Muted:', video.muted, 'Volume:', video.volume);
+                
+                // Démarrer la lecture
+                video.play().then(() => {
+                    console.log('Lecture démarrée avec succès');
+                    // Forcer une dernière fois après le démarrage
+                    setTimeout(() => {
+                        video.muted = false;
+                        video.volume = 1.0;
+                        console.log('Activation finale - Muted:', video.muted, 'Volume:', video.volume);
+                    }, 500);
+                }).catch(error => {
+                    console.error('Erreur lors du démarrage de la lecture:', error);
+                });
+            }, 200);
+        }
+        
+        // Gestion du clic sur le bouton
+        enableVolumeBtn.addEventListener('click', function() {
+            console.log('Activation du volume...');
+            
+            // Forcer l'activation du volume
+            forceEnableVolume();
+            
+            // Masquer le bouton
+            this.style.display = 'none';
+            
+            // Afficher un message de confirmation avec instructions
+            const statusMsg = document.createElement('div');
+            statusMsg.className = 'mt-2 p-3 bg-blue-50 border border-blue-200 rounded text-sm';
+            statusMsg.innerHTML = `
+                <div class="flex items-start">
+                    <i class="fas fa-info-circle text-blue-500 mt-0.5 mr-2"></i>
+                    <div>
+                        <p class="font-semibold text-blue-800">Volume activé !</p>
+                        <p class="text-blue-700 mt-1">Si vous n'entendez toujours rien :</p>
+                        <ul class="text-blue-600 mt-1 ml-4 list-disc">
+                            <li>Cliquez sur l'icône audio dans la barre d'adresse Firefox</li>
+                            <li>Vérifiez que le volume système n'est pas coupé</li>
+                            <li>Essayez de cliquer sur le bouton de lecture de la vidéo</li>
+                        </ul>
+                    </div>
+                </div>
+            `;
+            this.parentNode.appendChild(statusMsg);
+        });
+        
+        // Écouter les changements de volume pour diagnostiquer
+        video.addEventListener('volumechange', function() {
+            console.log('Volume changé - Muted:', video.muted, 'Volume:', video.volume);
+        });
+        
+        // Écouter les erreurs
+        video.addEventListener('error', function(e) {
+            console.error('Erreur vidéo:', e);
+        });
+        
+        // Limiter l'aperçu à 2 minutes
+        video.addEventListener('timeupdate', function() {
+            if (video.currentTime >= 120) { // 2 minutes
+                video.pause();
+                
+                // Message simple
+                const message = document.createElement('div');
+                message.className = 'fixed top-4 right-4 bg-white border border-gray-200 rounded-lg shadow-lg p-4 max-w-sm z-50';
+                message.innerHTML = `
+                    <div class="flex items-start">
+                        <i class="fas fa-info-circle text-blue-500 mt-1 mr-3"></i>
+                        <div class="flex-1">
+                            <h4 class="font-semibold text-gray-900 mb-1">Aperçu terminé</h4>
+                            <p class="text-sm text-gray-600 mb-3">Pour voir la suite, achetez la formation complète.</p>
+                            <a href="{% url 'store:product_detail' product.slug %}" class="inline-block bg-primary text-white px-3 py-1 rounded text-sm hover:bg-primary-dark transition-colors">
+                                Voir la formation
+                            </a>
+                        </div>
+                        <button onclick="this.parentElement.remove()" class="text-gray-400 hover:text-gray-600 ml-2">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                `;
+                document.body.appendChild(message);
+                
+                setTimeout(() => {
+                    if (message.parentElement) {
+                        message.remove();
+                    }
+                }, 10000);
+            }
+        });
+    }
+});
+</script>
+{% endblock %} 

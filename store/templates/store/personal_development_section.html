@@ -1,0 +1,130 @@
+{% extends 'store/base.html' %}
+
+{% block title %}{{ section.name }} - NovaLearn{% endblock %}
+
+{% block content %}
+<div class="bg-gray-50 min-h-screen">
+    <!-- Breadcrumb -->
+    <div class="bg-white shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <nav class="flex" aria-label="Breadcrumb">
+                <ol class="flex items-center space-x-4">
+                    <li>
+                        <a href="{% url 'store:home' %}" class="text-gray-400 hover:text-gray-500">
+                            <i class="fas fa-home"></i>
+                        </a>
+                    </li>
+                    <li>
+                        <div class="flex items-center">
+                            <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+                            <a href="{% url 'store:personal_development' %}" class="text-gray-400 hover:text-gray-500">Développement Personnel</a>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="flex items-center">
+                            <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+                            <span class="text-gray-900">{{ section.name }}</span>
+                        </div>
+                    </li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- En-tête de la section -->
+        <div class="bg-white rounded-xl shadow-sm p-8 mb-8">
+            <div class="text-center">
+                {% if section.image %}
+                <img src="{{ section.image.url }}" alt="{{ section.name }}" class="w-32 h-32 object-cover rounded-full mx-auto mb-6">
+                {% else %}
+                <div class="w-32 h-32 bg-gradient-to-br from-green-400 to-blue-500 rounded-full mx-auto mb-6 flex items-center justify-center">
+                    <i class="fas fa-brain text-white text-4xl"></i>
+                </div>
+                {% endif %}
+                
+                <h1 class="text-3xl font-bold text-gray-900 mb-4">{{ section.name }}</h1>
+                <p class="text-lg text-gray-600 max-w-3xl mx-auto">{{ section.description }}</p>
+                
+                <div class="mt-6">
+                    <span class="bg-green-100 text-green-800 px-4 py-2 rounded-full text-sm font-semibold">
+                        {{ section.get_books_count }} livre{{ section.get_books_count|pluralize }} disponible{{ section.get_books_count|pluralize }}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Liste des livres -->
+        {% if books %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for book in books %}
+            <div class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300">
+                <div class="relative">
+                    {% if book.cover_image %}
+                    <img src="{{ book.cover_image.url }}" alt="{{ book.title }}" class="w-full h-48 object-cover rounded-t-xl">
+                    {% else %}
+                    <div class="w-full h-48 bg-gradient-to-br from-primary to-blue-600 rounded-t-xl flex items-center justify-center">
+                        <i class="fas fa-book text-white text-4xl"></i>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Badges -->
+                    <div class="absolute top-4 left-4 flex flex-col space-y-2">
+                        {% if book.is_new %}
+                        <span class="bg-secondary text-white px-2 py-1 rounded-full text-xs font-semibold">
+                            Nouveau
+                        </span>
+                        {% endif %}
+                        {% if book.is_popular %}
+                        <span class="bg-accent text-white px-2 py-1 rounded-full text-xs font-semibold">
+                            Populaire
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="p-6">
+                    <div class="flex items-center space-x-2 mb-2">
+                        <span class="bg-primary text-white px-2 py-1 rounded text-xs font-semibold">
+                            {{ book.get_product_type_display }}
+                        </span>
+                        <span class="text-sm text-gray-500">{{ book.category.name }}</span>
+                    </div>
+                    
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">{{ book.title }}</h3>
+                    <p class="text-gray-600 mb-4">{{ book.short_description|truncatewords:15 }}</p>
+                    
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm text-gray-500"><i class="fas fa-download mr-1"></i>{{ book.downloads_count }} téléchargements</span>
+                    </div>
+                    
+                    <div class="flex items-center justify-between">
+                        <div>
+                            {% if book.is_free %}
+                                <div class="text-xl font-bold text-green-600">Gratuit</div>
+                                <div class="text-sm text-gray-500">Téléchargement libre</div>
+                            {% else %}
+                                <div class="text-xl font-bold text-primary">{{ book.price_fcfa }} FCFA</div>
+                                <div class="text-sm text-gray-500">{{ book.price_eur }} EUR</div>
+                            {% endif %}
+                        </div>
+                        <a href="{% url 'store:product_detail' book.slug %}" class="bg-primary hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors">
+                            Voir le livre
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="bg-white rounded-xl shadow-sm p-8 text-center">
+            <div class="text-gray-500">
+                <i class="fas fa-book-open text-6xl mb-4"></i>
+                <h3 class="text-xl font-semibold mb-2">Aucun livre disponible</h3>
+                <p>Il n'y a pas encore de livres dans cette section.</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %} 

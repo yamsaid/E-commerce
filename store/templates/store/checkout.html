@@ -1,0 +1,209 @@
+{% extends 'store/base.html' %}
+
+{% block title %}Finaliser la commande - NovaLearn{% endblock %}
+
+{% block content %}
+<div class="bg-gray-50 min-h-screen">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900">Finaliser votre commande</h1>
+            <p class="mt-2 text-gray-600">Complétez vos informations pour finaliser votre achat</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Formulaire de commande -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-xl shadow-sm">
+                    <div class="p-6">
+                        <h2 class="text-xl font-semibold text-gray-900 mb-6">Informations de commande</h2>
+                        
+                        <form method="POST" class="space-y-6">
+                            {% csrf_token %}
+                            
+                            <!-- Informations personnelles -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label for="customer_name" class="block text-sm font-medium text-gray-700 mb-2">
+                                        Nom complet *
+                                    </label>
+                                    <input type="text" id="customer_name" name="customer_name" required
+                                           value="{{ user.get_full_name|default:'' }}"
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary">
+                                </div>
+                                
+                                <div>
+                                    <label for="customer_email" class="block text-sm font-medium text-gray-700 mb-2">
+                                        Adresse email *
+                                    </label>
+                                    <input type="email" id="customer_email" name="customer_email" required
+                                           value="{{ user.email|default:'' }}"
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label for="customer_phone" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Numéro de téléphone
+                                </label>
+                                <input type="tel" id="customer_phone" name="customer_phone"
+                                       placeholder="+225 01234567"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary">
+                            </div>
+
+                            <!-- Méthode de paiement -->
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4">Méthode de paiement</h3>
+                                
+                                <div class="space-y-4">
+                                    <!-- Carte bancaire -->
+                                    <div class="border border-gray-200 rounded-lg p-4">
+                                        <div class="flex items-center">
+                                            <input type="radio" id="payment_card" name="payment_method" value="card" checked
+                                                   class="h-4 w-4 text-primary focus:ring-primary border-gray-300">
+                                            <label for="payment_card" class="ml-3 flex items-center">
+                                                <i class="fas fa-credit-card text-gray-400 mr-2"></i>
+                                                <span class="font-medium">Carte bancaire</span>
+                                            </label>
+                                        </div>
+                                        <div class="mt-2 text-sm text-gray-600">
+                                            Visa, Mastercard, American Express
+                                        </div>
+                                    </div>
+
+                                    <!-- Mobile Money -->
+                                    <div class="border border-gray-200 rounded-lg p-4">
+                                        <div class="flex items-center">
+                                            <input type="radio" id="payment_mobile" name="payment_method" value="mobile_money"
+                                                   class="h-4 w-4 text-primary focus:ring-primary border-gray-300">
+                                            <label for="payment_mobile" class="ml-3 flex items-center">
+                                                <i class="fas fa-mobile-alt text-gray-400 mr-2"></i>
+                                                <span class="font-medium">Mobile Money</span>
+                                            </label>
+                                        </div>
+                                        <div class="mt-2 text-sm text-gray-600">
+                                            Orange Money, Moov Money, MTN Money
+                                        </div>
+                                    </div>
+
+                                    <!-- PayPal -->
+                                    <div class="border border-gray-200 rounded-lg p-4">
+                                        <div class="flex items-center">
+                                            <input type="radio" id="payment_paypal" name="payment_method" value="paypal"
+                                                   class="h-4 w-4 text-primary focus:ring-primary border-gray-300">
+                                            <label for="payment_paypal" class="ml-3 flex items-center">
+                                                <i class="fab fa-paypal text-gray-400 mr-2"></i>
+                                                <span class="font-medium">PayPal</span>
+                                            </label>
+                                        </div>
+                                        <div class="mt-2 text-sm text-gray-600">
+                                            Paiement sécurisé via PayPal
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Conditions -->
+                            <div class="flex items-start">
+                                <input type="checkbox" id="terms" name="terms" required
+                                       class="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-1">
+                                <label for="terms" class="ml-2 text-sm text-gray-700">
+                                    J'accepte les 
+                                    <a href="#" class="text-primary hover:text-blue-700">conditions d'utilisation</a>
+                                    et la 
+                                    <a href="#" class="text-primary hover:text-blue-700">politique de confidentialité</a>
+                                </label>
+                            </div>
+
+                            <div class="flex items-center justify-between pt-6 border-t border-gray-200">
+                                <a href="{% url 'store:cart' %}" class="text-primary hover:text-blue-700 font-medium">
+                                    <i class="fas fa-arrow-left mr-1"></i>
+                                    Retour au panier
+                                </a>
+                                
+                                <button type="submit" class="bg-primary hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-semibold transition-colors">
+                                    <i class="fas fa-lock mr-2"></i>
+                                    Procéder au paiement
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Résumé de la commande -->
+            <div class="lg:col-span-1">
+                <div class="bg-white rounded-xl shadow-sm p-6 sticky top-24">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Résumé de votre commande</h3>
+                    
+                    <!-- Articles -->
+                    <div class="space-y-3 mb-6">
+                        {% for item in cart_items %}
+                        <div class="flex items-center space-x-3">
+                            <div class="flex-shrink-0">
+                                {% if item.product.cover_image %}
+                                <img src="{{ item.product.cover_image.url }}" alt="{{ item.product.title }}" class="w-12 h-12 object-cover rounded-lg">
+                                {% else %}
+                                <div class="w-12 h-12 bg-gradient-to-br from-primary to-blue-600 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-book text-white"></i>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <h4 class="text-sm font-medium text-gray-900 truncate">{{ item.product.title }}</h4>
+                                <p class="text-xs text-gray-500">Quantité: {{ item.quantity }}</p>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-sm font-medium text-primary">{{ item.total_fcfa }} FCFA</div>
+                                <div class="text-xs text-gray-500">{{ item.total_eur }} EUR</div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Totaux -->
+                    <div class="border-t border-gray-200 pt-4 space-y-3">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">Sous-total</span>
+                            <span class="font-medium">{{ total_fcfa }} FCFA</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">TVA (18%)</span>
+                            <span class="font-medium">{{ tax_fcfa|floatformat:0 }} FCFA</span>
+                        </div>
+                        <hr class="border-gray-200">
+                        <div class="flex justify-between text-lg font-semibold">
+                            <span>Total</span>
+                            <span class="text-primary">{{ total_with_tax_fcfa|floatformat:0 }} FCFA</span>
+                        </div>
+                        <div class="text-sm text-gray-500 text-right">
+                            {{ total_with_tax_eur|floatformat:0 }} EUR
+                        </div>
+                    </div>
+
+                    <!-- Informations de sécurité -->
+                    <div class="mt-6 pt-6 border-t border-gray-200">
+                        <div class="space-y-3 text-sm text-gray-600">
+                            <div class="flex items-center space-x-2">
+                                <i class="fas fa-shield-alt text-green-500"></i>
+                                <span>Paiement 100% sécurisé</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <i class="fas fa-download text-blue-500"></i>
+                                <span>Téléchargement immédiat</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <i class="fas fa-undo text-purple-500"></i>
+                                <span>Garantie 30 jours</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <i class="fas fa-headset text-orange-500"></i>
+                                <span>Support 24/7</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

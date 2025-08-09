@@ -1,0 +1,179 @@
+{% extends 'store/base.html' %}
+
+{% block title %}{{ collection.title }} - NovaLearn{% endblock %}
+
+{% block content %}
+<div class="bg-gray-50 min-h-screen">
+    <!-- Breadcrumb -->
+    <div class="bg-white shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <nav class="flex" aria-label="Breadcrumb">
+                <ol class="flex items-center space-x-4">
+                    <li>
+                        <a href="{% url 'store:home' %}" class="text-gray-400 hover:text-gray-500">
+                            <i class="fas fa-home"></i>
+                        </a>
+                    </li>
+                    <li>
+                        <div class="flex items-center">
+                            <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+                            <a href="{% url 'store:book_collections' %}" class="text-gray-400 hover:text-gray-500">Collections</a>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="flex items-center">
+                            <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+                            <span class="text-gray-900">{{ collection.title }}</span>
+                        </div>
+                    </li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Informations de la collection -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                    <!-- Image principale -->
+                    <div class="relative">
+                        {% if collection.cover_image %}
+                        <img src="{{ collection.cover_image.url }}" alt="{{ collection.title }}" class="w-full h-96 object-cover">
+                        {% else %}
+                        <div class="w-full h-96 bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center">
+                            <i class="fas fa-books text-white text-6xl"></i>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Badges -->
+                        <div class="absolute top-4 left-4 flex flex-col space-y-2">
+                            {% if collection.is_featured %}
+                            <span class="bg-primary text-white px-3 py-1 rounded-full text-sm font-semibold">
+                                Mis en avant
+                            </span>
+                            {% endif %}
+                            {% if collection.discount_percentage > 0 %}
+                            <span class="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                                -{{ collection.discount_percentage }}%
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Informations de la collection -->
+                    <div class="p-6">
+                        <h1 class="text-3xl font-bold text-gray-900 mb-4">{{ collection.title }}</h1>
+                        
+                        <div class="mb-6">
+                            <p class="text-gray-600 text-lg">{{ collection.description }}</p>
+                        </div>
+
+                        <!-- Statistiques -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                            <div class="text-center">
+                                <div class="text-2xl font-bold text-primary">{{ collection.get_books_count }}</div>
+                                <div class="text-sm text-gray-500">Livres inclus</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-2xl font-bold text-green-600">{{ collection.get_savings_fcfa }} FCFA</div>
+                                <div class="text-sm text-gray-500">Économies</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-2xl font-bold text-red-600">{{ collection.discount_percentage }}%</div>
+                                <div class="text-sm text-gray-500">Réduction</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Liste des livres -->
+                {% if books %}
+                <div class="bg-white rounded-xl shadow-sm mt-8">
+                    <div class="p-6">
+                        <h2 class="text-2xl font-bold text-gray-900 mb-6">Livres inclus dans cette collection</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {% for book in books %}
+                            <div class="flex items-center space-x-4 p-4 border border-gray-200 rounded-lg">
+                                {% if book.cover_image %}
+                                <img src="{{ book.cover_image.url }}" alt="{{ book.title }}" class="w-16 h-16 object-cover rounded-lg">
+                                {% else %}
+                                <div class="w-16 h-16 bg-gradient-to-br from-primary to-blue-600 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-book text-white"></i>
+                                </div>
+                                {% endif %}
+                                <div class="flex-1">
+                                    <h3 class="font-semibold text-gray-900">{{ book.title }}</h3>
+                                    <p class="text-sm text-gray-500">{{ book.short_description|truncatewords:10 }}</p>
+                                    <div class="text-sm text-gray-400">{{ book.price_fcfa }} FCFA</div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Panneau d'achat -->
+            <div class="lg:col-span-1">
+                <div class="bg-white rounded-xl shadow-sm p-6 sticky top-24">
+                    <!-- Prix -->
+                    <div class="text-center mb-6">
+                        <div class="text-3xl font-bold text-primary mb-1">{{ collection.price_fcfa }} FCFA</div>
+                        <div class="text-lg text-gray-500">{{ collection.price_eur }} EUR</div>
+                        {% if collection.discount_percentage > 0 %}
+                        <div class="text-sm text-red-500 mt-2">
+                            Économisez {{ collection.get_savings_fcfa }} FCFA
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Actions d'achat -->
+                    <div class="space-y-4">
+                        <form method="POST" action="{% url 'store:add_to_cart' collection.id %}" class="space-y-4">
+                            {% csrf_token %}
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Quantité</label>
+                                <input type="number" name="quantity" value="1" min="1" max="10" 
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary">
+                            </div>
+                            <button type="submit" class="w-full bg-primary hover:bg-blue-700 text-white py-3 rounded-lg font-semibold transition-colors">
+                                <i class="fas fa-cart-plus mr-2"></i>
+                                Ajouter au panier
+                            </button>
+                        </form>
+
+                        <a href="{% url 'store:checkout' %}" class="block w-full bg-secondary hover:bg-orange-600 text-white py-3 rounded-lg font-semibold text-center transition-colors">
+                            <i class="fas fa-shopping-cart mr-2"></i>
+                            Acheter maintenant
+                        </a>
+                    </div>
+
+                    <!-- Informations supplémentaires -->
+                    <div class="mt-6 pt-6 border-t border-gray-200">
+                        <div class="space-y-3">
+                            <div class="flex items-center space-x-3">
+                                <i class="fas fa-download text-green-500"></i>
+                                <span class="text-sm text-gray-600">Téléchargement immédiat</span>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <i class="fas fa-shield-alt text-blue-500"></i>
+                                <span class="text-sm text-gray-600">Garantie 30 jours</span>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <i class="fas fa-headset text-purple-500"></i>
+                                <span class="text-sm text-gray-600">Support 24/7</span>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <i class="fas fa-mobile-alt text-orange-500"></i>
+                                <span class="text-sm text-gray-600">Compatible mobile</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

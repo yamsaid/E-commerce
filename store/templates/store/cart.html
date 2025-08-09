@@ -1,0 +1,212 @@
+{% extends 'store/base.html' %}
+
+{% block title %}Panier - NovaLearn{% endblock %}
+
+{% block content %}
+<div class="bg-gray-50 min-h-screen">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900">Panier</h1>
+            <p class="mt-2 text-gray-600">Vérifiez vos articles avant de finaliser votre commande</p>
+        </div>
+
+        {% if cart_items %}
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Liste des articles -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-xl shadow-sm">
+                    <div class="p-6">
+                        <h2 class="text-xl font-semibold text-gray-900 mb-6">Articles dans votre panier</h2>
+                        
+                        <div class="space-y-4">
+                            {% for item in cart_items %}
+                            <div class="flex items-center space-x-4 p-4 border border-gray-200 rounded-lg">
+                                <!-- Image -->
+                                <div class="flex-shrink-0">
+                                    {% if item.product.cover_image %}
+                                    <img src="{{ item.product.cover_image.url }}" alt="{{ item.product.title }}" class="w-20 h-20 object-cover rounded-lg">
+                                    {% else %}
+                                    <div class="w-20 h-20 bg-gradient-to-br from-primary to-blue-600 rounded-lg flex items-center justify-center">
+                                        <i class="fas fa-book text-white text-2xl"></i>
+                                    </div>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Informations du produit -->
+                                <div class="flex-1">
+                                    <h3 class="font-semibold text-gray-900 mb-1">{{ item.product.title }}</h3>
+                                    <p class="text-sm text-gray-500 mb-2">{{ item.product.category.name }} • {{ item.product.get_product_type_display }}</p>
+                                    
+                                    <!-- Métadonnées -->
+                                    <div class="flex items-center space-x-4 text-xs text-gray-500">
+                                        {% if item.product.duration %}
+                                        <span><i class="fas fa-clock mr-1"></i>{{ item.product.duration }}</span>
+                                        {% endif %}
+                                        {% if item.product.level %}
+                                        <span><i class="fas fa-signal mr-1"></i>{{ item.product.level }}</span>
+                                        {% endif %}
+                                        <span><i class="fas fa-download mr-1"></i>{{ item.product.get_file_type_display }}</span>
+                                    </div>
+                                </div>
+
+                                <!-- Quantité -->
+                                <div class="flex items-center space-x-2">
+                                    <button onclick="updateQuantity({{ item.product.id }}, -1)" class="w-8 h-8 border border-gray-300 rounded-lg flex items-center justify-center hover:bg-gray-50">
+                                        <i class="fas fa-minus text-xs"></i>
+                                    </button>
+                                    <span id="quantity-{{ item.product.id }}" class="w-12 text-center font-medium">{{ item.quantity }}</span>
+                                    <button onclick="updateQuantity({{ item.product.id }}, 1)" class="w-8 h-8 border border-gray-300 rounded-lg flex items-center justify-center hover:bg-gray-50">
+                                        <i class="fas fa-plus text-xs"></i>
+                                    </button>
+                                </div>
+
+                                <!-- Prix -->
+                                <div class="text-right">
+                                    <div class="font-semibold text-primary">{{ item.total_fcfa }} FCFA</div>
+                                    <div class="text-sm text-gray-500">{{ item.total_eur }} EUR</div>
+                                </div>
+
+                                <!-- Supprimer -->
+                                <div class="flex-shrink-0">
+                                    <a href="{% url 'store:remove_from_cart' item.product.id %}" 
+                                       class="text-red-500 hover:text-red-700 transition-colors"
+                                       onclick="return confirm('Êtes-vous sûr de vouloir retirer cet article ?')">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="mt-6 flex flex-col sm:flex-row gap-4">
+                    <a href="{% url 'store:product_list' %}" class="flex-1 sm:flex-none bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-3 rounded-lg font-semibold text-center transition-colors">
+                        <i class="fas fa-arrow-left mr-2"></i>
+                        Continuer les achats
+                    </a>
+                    <a href="{% url 'store:checkout' %}" class="flex-1 bg-primary hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold text-center transition-colors">
+                        Passer la commande
+                        <i class="fas fa-arrow-right ml-2"></i>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Résumé de la commande -->
+            <div class="lg:col-span-1">
+                <div class="bg-white rounded-xl shadow-sm p-6 sticky top-24">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Résumé de la commande</h3>
+                    
+                    <div class="space-y-3 mb-6">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">Sous-total</span>
+                            <span class="font-medium">{{ total_fcfa }} FCFA</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">TVA (18%)</span>
+                            <span class="font-medium">{{ tax_fcfa|floatformat:0 }} FCFA</span>
+                        </div>
+                        <hr class="border-gray-200">
+                        <div class="flex justify-between text-lg font-semibold">
+                            <span>Total</span>
+                            <span class="text-primary">{{ total_with_tax_fcfa|floatformat:0 }} FCFA</span>
+                        </div>
+                        <div class="text-sm text-gray-500 text-right">
+                            {{ total_with_tax_eur|floatformat:0 }} EUR
+                        </div>
+                    </div>
+
+                    <a href="{% url 'store:checkout' %}" class="w-full bg-secondary hover:bg-orange-600 text-white py-3 rounded-lg font-semibold text-center transition-colors block">
+                        Finaliser la commande
+                    </a>
+
+                    <!-- Informations supplémentaires -->
+                    <div class="mt-6 pt-6 border-t border-gray-200">
+                        <div class="space-y-3 text-sm text-gray-600">
+                            <div class="flex items-center space-x-2">
+                                <i class="fas fa-shield-alt text-green-500"></i>
+                                <span>Paiement sécurisé</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <i class="fas fa-download text-blue-500"></i>
+                                <span>Téléchargement immédiat</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <i class="fas fa-undo text-purple-500"></i>
+                                <span>Garantie 30 jours</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% else %}
+        <!-- Panier vide -->
+        <div class="text-center py-12">
+            <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <i class="fas fa-shopping-cart text-3xl text-gray-400"></i>
+            </div>
+            <h2 class="text-2xl font-semibold text-gray-900 mb-4">Votre panier est vide</h2>
+            <p class="text-gray-600 mb-8 max-w-md mx-auto">
+                Vous n'avez pas encore ajouté de formations à votre panier. 
+                Découvrez notre catalogue et commencez votre apprentissage !
+            </p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <a href="{% url 'store:product_list' %}" class="bg-primary hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-semibold transition-colors">
+                    <i class="fas fa-search mr-2"></i>
+                    Parcourir les formations
+                </a>
+                <a href="{% url 'store:home' %}" class="border border-primary text-primary hover:bg-primary hover:text-white px-8 py-3 rounded-lg font-semibold transition-colors">
+                    <i class="fas fa-home mr-2"></i>
+                    Retour à l'accueil
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function updateQuantity(productId, change) {
+    const quantityElement = document.getElementById(`quantity-${productId}`);
+    let currentQuantity = parseInt(quantityElement.textContent);
+    let newQuantity = currentQuantity + change;
+    
+    if (newQuantity < 1) {
+        newQuantity = 1;
+    }
+    
+    if (newQuantity > 10) {
+        newQuantity = 10;
+    }
+    
+    // Mettre à jour l'affichage
+    quantityElement.textContent = newQuantity;
+    
+    // Envoyer la mise à jour au serveur
+    fetch('{% url "store:update_cart" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+            product_id: productId,
+            quantity: newQuantity
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Recharger la page pour mettre à jour les totaux
+            location.reload();
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+    });
+}
+</script>
+{% endblock %} 

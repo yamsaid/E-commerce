@@ -1,0 +1,211 @@
+{% extends 'store/base.html' %}
+
+{% block title %}Mon Compte - NovaLearn{% endblock %}
+
+{% block content %}
+<div class="bg-gray-50 min-h-screen">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900">Mon Compte</h1>
+            <p class="mt-2 text-gray-600">Bienvenue, {{ user.get_full_name|default:user.username }}</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            <!-- Navigation du compte -->
+            <div class="lg:col-span-1">
+                <div class="bg-white rounded-xl shadow-sm p-6 sticky top-24">
+                    <div class="flex items-center space-x-3 mb-6">
+                        <div class="w-12 h-12 bg-primary rounded-full flex items-center justify-center">
+                            <span class="text-white font-semibold">{{ user.username|first|upper }}</span>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-900">{{ user.get_full_name|default:user.username }}</h3>
+                            <p class="text-sm text-gray-500">{{ user.email }}</p>
+                        </div>
+                    </div>
+
+                    <nav class="space-y-2">
+                        <a href="{% url 'store:account' %}" class="flex items-center space-x-3 px-3 py-2 text-primary bg-blue-50 rounded-lg font-medium">
+                            <i class="fas fa-tachometer-alt"></i>
+                            <span>Tableau de bord</span>
+                        </a>
+                        <a href="{% url 'store:my_orders' %}" class="flex items-center space-x-3 px-3 py-2 text-gray-700 hover:text-primary hover:bg-gray-50 rounded-lg transition-colors">
+                            <i class="fas fa-shopping-bag"></i>
+                            <span>Mes commandes</span>
+                        </a>
+                        <a href="{% url 'store:my_downloads' %}" class="flex items-center space-x-3 px-3 py-2 text-gray-700 hover:text-primary hover:bg-gray-50 rounded-lg transition-colors">
+                            <i class="fas fa-download"></i>
+                            <span>Mes téléchargements</span>
+                        </a>
+                        <a href="#" class="flex items-center space-x-3 px-3 py-2 text-gray-700 hover:text-primary hover:bg-gray-50 rounded-lg transition-colors">
+                            <i class="fas fa-heart"></i>
+                            <span>Favoris</span>
+                        </a>
+                        <a href="#" class="flex items-center space-x-3 px-3 py-2 text-gray-700 hover:text-primary hover:bg-gray-50 rounded-lg transition-colors">
+                            <i class="fas fa-cog"></i>
+                            <span>Paramètres</span>
+                        </a>
+                        <hr class="border-gray-200">
+                        <a href="{% url 'store:logout' %}" class="flex items-center space-x-3 px-3 py-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Déconnexion</span>
+                        </a>
+                    </nav>
+                </div>
+            </div>
+
+            <!-- Contenu principal -->
+            <div class="lg:col-span-3">
+                <!-- Statistiques -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-white rounded-xl shadow-sm p-6">
+                        <div class="flex items-center">
+                            <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-shopping-bag text-blue-600"></i>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-600">Commandes</p>
+                                <p class="text-2xl font-bold text-gray-900">{{ user_orders.count }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm p-6">
+                        <div class="flex items-center">
+                            <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-download text-green-600"></i>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-600">Téléchargements</p>
+                                <p class="text-2xl font-bold text-gray-900">{{ user_downloads.count }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm p-6">
+                        <div class="flex items-center">
+                            <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-star text-purple-600"></i>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-600">Avis donnés</p>
+                                <p class="text-2xl font-bold text-gray-900">{{ user.reviews.count }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Commandes récentes -->
+                <div class="bg-white rounded-xl shadow-sm p-6 mb-8">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-xl font-semibold text-gray-900">Commandes récentes</h2>
+                        <a href="{% url 'store:my_orders' %}" class="text-primary hover:text-blue-700 font-medium">
+                            Voir toutes
+                        </a>
+                    </div>
+
+                    {% if user_orders %}
+                    <div class="space-y-4">
+                        {% for order in user_orders %}
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <div class="flex items-center justify-between mb-3">
+                                <div>
+                                    <h3 class="font-medium text-gray-900">Commande #{{ order.order_number }}</h3>
+                                    <p class="text-sm text-gray-500">{{ order.created_at|date:"d/m/Y H:i" }}</p>
+                                </div>
+                                <div class="text-right">
+                                    <div class="font-medium text-primary">{{ order.total_fcfa }} FCFA</div>
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                        {% if order.status == 'paid' %}bg-green-100 text-green-800
+                                        {% elif order.status == 'pending' %}bg-yellow-100 text-yellow-800
+                                        {% elif order.status == 'cancelled' %}bg-red-100 text-red-800
+                                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                        {{ order.get_status_display }}
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center justify-between">
+                                <div class="text-sm text-gray-600">
+                                    {{ order.items.count }} article{{ order.items.count|pluralize }}
+                                </div>
+                                <a href="{% url 'store:order_detail' order.order_number %}" class="text-primary hover:text-blue-700 text-sm font-medium">
+                                    Voir les détails
+                                </a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-8">
+                        <i class="fas fa-shopping-bag text-4xl text-gray-400 mb-4"></i>
+                        <p class="text-gray-500">Aucune commande pour le moment</p>
+                        <a href="{% url 'store:product_list' %}" class="mt-4 inline-flex items-center text-primary hover:text-blue-700">
+                            <i class="fas fa-shopping-cart mr-2"></i>
+                            Commencer à acheter
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Téléchargements récents -->
+                <div class="bg-white rounded-xl shadow-sm p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-xl font-semibold text-gray-900">Téléchargements récents</h2>
+                        <a href="{% url 'store:my_downloads' %}" class="text-primary hover:text-blue-700 font-medium">
+                            Voir tous
+                        </a>
+                    </div>
+
+                    {% if user_downloads %}
+                    <div class="space-y-4">
+                        {% for download in user_downloads %}
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <div class="flex items-center space-x-4">
+                                <div class="flex-shrink-0">
+                                    {% if download.product.cover_image %}
+                                    <img src="{{ download.product.cover_image.url }}" alt="{{ download.product.title }}" class="w-12 h-12 object-cover rounded-lg">
+                                    {% else %}
+                                    <div class="w-12 h-12 bg-gradient-to-br from-primary to-blue-600 rounded-lg flex items-center justify-center">
+                                        <i class="fas fa-book text-white"></i>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="flex-1">
+                                    <h4 class="font-medium text-gray-900">{{ download.product.title }}</h4>
+                                    <p class="text-sm text-gray-500">{{ download.product.category.name }}</p>
+                                    <div class="flex items-center space-x-4 text-xs text-gray-500 mt-1">
+                                        <span><i class="fas fa-download mr-1"></i>{{ download.downloads_count }}/{{ download.max_downloads }}</span>
+                                        <span><i class="fas fa-clock mr-1"></i>Expire le {{ download.expires_at|date:"d/m/Y" }}</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center space-x-2">
+                                    {% if download.can_download %}
+                                    <a href="{% url 'store:download_file' download.download_token %}" 
+                                       class="bg-primary hover:bg-blue-700 text-white px-3 py-1 rounded text-sm font-medium transition-colors">
+                                        <i class="fas fa-download mr-1"></i>
+                                        Télécharger
+                                    </a>
+                                    {% else %}
+                                    <span class="text-red-600 text-sm font-medium">Expiré</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-8">
+                        <i class="fas fa-download text-4xl text-gray-400 mb-4"></i>
+                        <p class="text-gray-500">Aucun téléchargement disponible</p>
+                        <p class="text-sm text-gray-400 mt-2">Achetez des formations pour accéder à vos téléchargements</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
