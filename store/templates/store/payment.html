@@ -69,19 +69,23 @@
                             <div id="mobile-form" class="space-y-4 hidden">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">Opérateur</label>
-                                    <select class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary">
+                                    <select id="mobile-operator" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary">
                                         <option value="">Sélectionnez un opérateur</option>
                                         <option value="orange">Orange Money</option>
-                                        <option value="moov">Moov Money</option>
                                         <option value="mtn">MTN Money</option>
+                                        <option value="moov">Moov Money</option>
+                                        <option value="wave">Wave</option>
                                     </select>
                                 </div>
                                 
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">Numéro de téléphone</label>
-                                    <input type="tel" placeholder="+225 01234567" 
+                                    <input type="tel" id="mobile-phone" placeholder="+225 01234567" 
                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary">
+                                    <p class="text-xs text-gray-500 mt-1">Format: +225 01234567 ou 01234567</p>
                                 </div>
+                                
+                                <div id="mobile-errors" class="text-red-600 text-sm hidden"></div>
                             </div>
                         </div>
                     </div>
@@ -109,6 +113,9 @@
                         <i class="fas fa-lock mr-2"></i>
                         Payer {{ order.total_fcfa }} FCFA
                     </button>
+                    
+                    <!-- Token CSRF -->
+                    {% csrf_token %}
                 </div>
             </div>
 
@@ -271,8 +278,68 @@ document.getElementById('pay-button').addEventListener('click', async function(e
         }
     } else if (selectedMethod === 'mobile_money') {
         // Paiement Mobile Money
-        // Logique pour Mobile Money
-        alert('Paiement Mobile Money - En cours de développement');
+        const operator = document.getElementById('mobile-operator').value;
+        const phoneNumber = document.getElementById('mobile-phone').value;
+        const mobileErrors = document.getElementById('mobile-errors');
+        
+        // Validation
+        if (!operator) {
+            mobileErrors.textContent = 'Veuillez sélectionner un opérateur';
+            mobileErrors.classList.remove('hidden');
+            return;
+        }
+        
+        if (!phoneNumber) {
+            mobileErrors.textContent = 'Veuillez saisir votre numéro de téléphone';
+            mobileErrors.classList.remove('hidden');
+            return;
+        }
+        
+        // Masquer les erreurs
+        mobileErrors.classList.add('hidden');
+        
+        // Désactiver le bouton
+        const payButton = document.getElementById('pay-button');
+        payButton.disabled = true;
+        payButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Traitement...';
+        
+        // Envoyer la demande de paiement
+        fetch('{% url "store:payment" order.order_number %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({
+                payment_type: 'mobile_money',
+                operator: operator,
+                phone_number: phoneNumber
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Rediriger vers la page de statut
+                window.location.href = data.redirect_url;
+            } else {
+                // Afficher l'erreur
+                mobileErrors.textContent = data.error;
+                mobileErrors.classList.remove('hidden');
+                
+                // Réactiver le bouton
+                payButton.disabled = false;
+                payButton.innerHTML = '<i class="fas fa-lock mr-2"></i>Payer {{ order.total_fcfa }} FCFA';
+            }
+        })
+        .catch(error => {
+            console.error('Erreur:', error);
+            mobileErrors.textContent = 'Erreur de connexion. Veuillez réessayer.';
+            mobileErrors.classList.remove('hidden');
+            
+            // Réactiver le bouton
+            payButton.disabled = false;
+            payButton.innerHTML = '<i class="fas fa-lock mr-2"></i>Payer {{ order.total_fcfa }} FCFA';
+        });
     } else if (selectedMethod === 'paypal') {
         // Paiement PayPal
         // Redirection vers PayPal

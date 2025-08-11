@@ -1,0 +1,226 @@
+{% extends 'store/base.html' %}
+{% load static %}
+
+{% block title %}Détail Commande {{ order.order_number }} - NovaLearn{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- En-tête -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-6">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900">Commande {{ order.order_number }}</h1>
+                    <p class="text-gray-600">Détails et gestion de la commande</p>
+                </div>
+                <div class="flex space-x-3">
+                    <a href="{% url 'store:admin_orders' %}" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                        <i class="fas fa-arrow-left mr-2"></i>Retour
+                    </a>
+                    <a href="{% url 'store:admin_dashboard' %}" class="bg-primary hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                        <i class="fas fa-chart-bar mr-2"></i>Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Messages -->
+        {% if messages %}
+        <div class="mb-6">
+            {% for message in messages %}
+            <div class="bg-{{ message.tags }}-100 border border-{{ message.tags }}-400 text-{{ message.tags }}-700 px-4 py-3 rounded relative" role="alert">
+                <span class="block sm:inline">{{ message }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Informations principales -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Statut de la commande -->
+                <div class="bg-white rounded-lg shadow-sm border p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-gray-900">Statut de la Commande</h3>
+                        <span class="inline-flex px-3 py-1 text-sm font-semibold rounded-full
+                            {% if order.status == 'paid' %}bg-green-100 text-green-800
+                            {% elif order.status == 'pending' %}bg-yellow-100 text-yellow-800
+                            {% elif order.status == 'cancelled' %}bg-red-100 text-red-800
+                            {% else %}bg-gray-100 text-gray-800{% endif %}">
+                            {{ order.get_status_display }}
+                        </span>
+                    </div>
+                    
+                    <!-- Formulaire de mise à jour du statut -->
+                    <form method="POST" class="space-y-4">
+                        {% csrf_token %}
+                        <div class="flex items-center space-x-4">
+                            <label class="text-sm font-medium text-gray-700">Changer le statut:</label>
+                            <select name="status" class="border border-gray-300 rounded-md px-3 py-2 text-sm">
+                                {% for value, label in status_choices %}
+                                <option value="{{ value }}" {% if order.status == value %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                            <button type="submit" class="bg-primary hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                                <i class="fas fa-save mr-2"></i>Mettre à jour
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Produits commandés -->
+                <div class="bg-white rounded-lg shadow-sm border p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Produits Commandés</h3>
+                    <div class="space-y-4">
+                        {% for item in order.items.all %}
+                        <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                            <div class="flex items-center space-x-4">
+                                {% if item.product.image %}
+                                <img src="{{ item.product.image.url }}" alt="{{ item.product.title }}" 
+                                     class="w-16 h-16 object-cover rounded-lg">
+                                {% else %}
+                                <div class="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-image text-gray-400"></i>
+                                </div>
+                                {% endif %}
+                                <div>
+                                    <h4 class="font-medium text-gray-900">{{ item.product.title }}</h4>
+                                    <p class="text-sm text-gray-500">{{ item.product.category.name }}</p>
+                                    <p class="text-sm text-gray-500">Quantité: {{ item.quantity }}</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-medium text-gray-900">{{ item.price_eur|floatformat:2 }} €</p>
+                                <p class="text-sm text-gray-500">Prix unitaire: {{ item.product.price|floatformat:2 }} €</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <!-- Total -->
+                    <div class="mt-6 pt-4 border-t border-gray-200">
+                        <div class="flex justify-between items-center">
+                            <span class="text-lg font-semibold text-gray-900">Total</span>
+                            <span class="text-2xl font-bold text-gray-900">{{ order.total_eur|floatformat:2 }} €</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Informations de paiement -->
+                <div class="bg-white rounded-lg shadow-sm border p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Informations de Paiement</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-sm font-medium text-gray-700">Méthode de paiement</p>
+                            <p class="text-gray-900">{{ order.payment_method|title }}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-gray-700">Transaction ID</p>
+                            <p class="text-gray-900">{{ order.transaction_id|default:"Non spécifié" }}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-gray-700">Date de paiement</p>
+                            <p class="text-gray-900">{{ order.paid_at|date:"d/m/Y H:i"|default:"Non payé" }}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-gray-700">Date de création</p>
+                            <p class="text-gray-900">{{ order.created_at|date:"d/m/Y H:i" }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Informations client et actions -->
+            <div class="space-y-6">
+                <!-- Informations client -->
+                <div class="bg-white rounded-lg shadow-sm border p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Informations Client</h3>
+                    <div class="space-y-3">
+                        <div>
+                            <p class="text-sm font-medium text-gray-700">Nom d'utilisateur</p>
+                            <p class="text-gray-900">{{ order.user.username }}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-gray-700">Email</p>
+                            <p class="text-gray-900">{{ order.user.email }}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-gray-700">Date d'inscription</p>
+                            <p class="text-gray-900">{{ order.user.date_joined|date:"d/m/Y" }}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-gray-700">Dernière connexion</p>
+                            <p class="text-gray-900">{{ order.user.last_login|date:"d/m/Y H:i"|default:"Jamais" }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions rapides -->
+                <div class="bg-white rounded-lg shadow-sm border p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Actions Rapides</h3>
+                    <div class="space-y-3">
+                        {% if order.status == 'pending' %}
+                        <button onclick="updateStatus('paid')" class="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                            <i class="fas fa-check mr-2"></i>Marquer comme Payé
+                        </button>
+                        <button onclick="updateStatus('cancelled')" class="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                            <i class="fas fa-times mr-2"></i>Annuler la Commande
+                        </button>
+                        {% endif %}
+                        
+                        <a href="mailto:{{ order.user.email }}?subject=Commande {{ order.order_number }}" 
+                           class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors inline-block text-center">
+                            <i class="fas fa-envelope mr-2"></i>Contacter le Client
+                        </a>
+                        
+                        <button onclick="printOrder()" class="w-full bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                            <i class="fas fa-print mr-2"></i>Imprimer la Commande
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Historique des téléchargements -->
+                <div class="bg-white rounded-lg shadow-sm border p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Téléchargements</h3>
+                    <div class="space-y-2">
+                        {% for download in order.user.download_set.all %}
+                        <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                            <div>
+                                <p class="text-sm font-medium text-gray-900">{{ download.product.title|truncatechars:20 }}</p>
+                                <p class="text-xs text-gray-500">{{ download.created_at|date:"d/m/Y" }}</p>
+                            </div>
+                            <i class="fas fa-download text-green-600"></i>
+                        </div>
+                        {% empty %}
+                        <p class="text-gray-500 text-sm">Aucun téléchargement pour ce client</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Formulaire caché pour les actions -->
+<form id="statusForm" method="POST" style="display: none;">
+    {% csrf_token %}
+    <input type="hidden" name="status" id="statusInput">
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function updateStatus(status) {
+    if (confirm('Êtes-vous sûr de vouloir changer le statut de cette commande ?')) {
+        document.getElementById('statusInput').value = status;
+        document.getElementById('statusForm').submit();
+    }
+}
+
+function printOrder() {
+    window.print();
+}
+</script>
+{% endblock %}

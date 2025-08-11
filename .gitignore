@@ -1,2 +1,17 @@
 novelearn/
 objectif.txt
+media/
+.env
+MOBILE_MONEY_IMPLEMENTATION.md
+debug_download.py
+
+*.md
+test_download.py
+test_download_compressed.py
+test_download_free.py
+test_download_compressed_free.py
+test_download_compressed_free.py
+*.md
+test_download.py
+test_download_compressed.py
+test_download_free.py

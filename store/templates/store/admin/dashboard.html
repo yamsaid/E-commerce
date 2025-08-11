@@ -1,0 +1,293 @@
+{% extends 'store/base.html' %}
+{% load static %}
+
+{% block title %}Dashboard Administrateur - NovaLearn{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stat-card {
+        transition: transform 0.2s;
+    }
+    .stat-card:hover {
+        transform: translateY(-2px);
+    }
+    .chart-container {
+        position: relative;
+        height: 300px;
+    }
+    .status-badge {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- En-tête du dashboard -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-6">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900">Dashboard Administrateur</h1>
+                    <p class="text-gray-600">Suivi des achats et métriques de performance</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <!-- Sélecteur de période -->
+                    <div class="flex items-center space-x-2">
+                        <label class="text-sm font-medium text-gray-700">Période:</label>
+                        <select id="periodSelect" class="border border-gray-300 rounded-md px-3 py-1 text-sm">
+                            <option value="7" {% if days == 7 %}selected{% endif %}>7 jours</option>
+                            <option value="30" {% if days == 30 %}selected{% endif %}>30 jours</option>
+                            <option value="90" {% if days == 90 %}selected{% endif %}>90 jours</option>
+                        </select>
+                    </div>
+                    <div class="text-sm text-gray-500">
+                        {{ start_date|date:"d/m/Y" }} - {{ end_date|date:"d/m/Y" }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Cartes de statistiques principales -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <!-- Commandes totales -->
+            <div class="bg-white rounded-lg shadow-sm border p-6 stat-card">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-shopping-cart text-blue-600"></i>
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Commandes</p>
+                        <p class="text-2xl font-bold text-gray-900">{{ total_orders }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Revenus totaux -->
+            <div class="bg-white rounded-lg shadow-sm border p-6 stat-card">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-euro-sign text-green-600"></i>
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Revenus</p>
+                        <p class="text-2xl font-bold text-gray-900">{{ total_revenue|floatformat:0 }} €</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Taux de conversion -->
+            <div class="bg-white rounded-lg shadow-sm border p-6 stat-card">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-percentage text-yellow-600"></i>
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Conversion</p>
+                        <p class="text-2xl font-bold text-gray-900">{{ conversion_rate }}%</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Téléchargements -->
+            <div class="bg-white rounded-lg shadow-sm border p-6 stat-card">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-download text-purple-600"></i>
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Téléchargements</p>
+                        <p class="text-2xl font-bold text-gray-900">{{ total_downloads }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Graphiques et tableaux -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <!-- Évolution des ventes -->
+            <div class="bg-white rounded-lg shadow-sm border p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Évolution des Ventes</h3>
+                <div class="chart-container">
+                    <canvas id="salesChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Statuts des commandes -->
+            <div class="bg-white rounded-lg shadow-sm border p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Statuts des Commandes</h3>
+                <div class="space-y-3">
+                    {% for status in orders_by_status %}
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <span class="status-badge 
+                                {% if status.status == 'paid' %}bg-green-100 text-green-800
+                                {% elif status.status == 'pending' %}bg-yellow-100 text-yellow-800
+                                {% elif status.status == 'cancelled' %}bg-red-100 text-red-800
+                                {% else %}bg-gray-100 text-gray-800{% endif %} rounded-full">
+                                {{ status.status|title }}
+                            </span>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-sm font-medium text-gray-900">{{ status.count }}</p>
+                            <p class="text-xs text-gray-500">{{ status.total_amount|floatformat:0 }} €</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Tableaux détaillés -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <!-- Produits les plus vendus -->
+            <div class="bg-white rounded-lg shadow-sm border p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900">Produits les Plus Vendus</h3>
+                    <a href="{% url 'store:admin_analytics' %}" class="text-primary hover:text-blue-700 text-sm font-medium">
+                        Voir plus <i class="fas fa-arrow-right ml-1"></i>
+                    </a>
+                </div>
+                <div class="space-y-3">
+                    {% for product in top_products %}
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div>
+                            <p class="font-medium text-gray-900">{{ product.product__title|truncatechars:30 }}</p>
+                            <p class="text-sm text-gray-500">{{ product.total_sales }} ventes</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-medium text-gray-900">{{ product.total_revenue|floatformat:0 }} €</p>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-gray-500 text-center py-4">Aucune vente dans cette période</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Méthodes de paiement -->
+            <div class="bg-white rounded-lg shadow-sm border p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Téléchargements Populaires</h3>
+                <div class="space-y-3">
+                    {% for download in downloads_by_product %}
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div class="flex items-center">
+                            <i class="fas fa-download text-gray-400 mr-3"></i>
+                            <span class="font-medium text-gray-900">{{ download.product__title|truncatechars:20 }}</span>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-medium text-gray-900">{{ download.downloads }}</p>
+                            <p class="text-sm text-gray-500">téléchargements</p>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-gray-500 text-center py-4">Aucun téléchargement dans cette période</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions rapides -->
+        <div class="bg-white rounded-lg shadow-sm border p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Actions Rapides</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <a href="{% url 'store:admin_orders' %}" class="flex items-center p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
+                    <i class="fas fa-list text-blue-600 mr-3"></i>
+                    <div>
+                        <p class="font-medium text-blue-900">Gérer les Commandes</p>
+                        <p class="text-sm text-blue-700">Voir et modifier les commandes</p>
+                    </div>
+                </a>
+                
+                <a href="{% url 'store:admin_analytics' %}" class="flex items-center p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors">
+                    <i class="fas fa-chart-line text-green-600 mr-3"></i>
+                    <div>
+                        <p class="font-medium text-green-900">Analytics Détaillés</p>
+                        <p class="text-sm text-green-700">Analyses approfondies</p>
+                    </div>
+                </a>
+                
+                <a href="{% url 'store:product_list' %}" class="flex items-center p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors">
+                    <i class="fas fa-box text-purple-600 mr-3"></i>
+                    <div>
+                        <p class="font-medium text-purple-900">Gérer les Produits</p>
+                        <p class="text-sm text-purple-700">Ajouter/modifier des produits</p>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Graphique des ventes
+const ctx = document.getElementById('salesChart').getContext('2d');
+const salesChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: {{ chart_labels|safe }},
+        datasets: [{
+            label: 'Commandes',
+            data: {{ chart_orders|safe }},
+            borderColor: 'rgb(59, 130, 246)',
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            tension: 0.1
+        }, {
+            label: 'Revenus (€)',
+            data: {{ chart_revenue|safe }},
+            borderColor: 'rgb(34, 197, 94)',
+            backgroundColor: 'rgba(34, 197, 94, 0.1)',
+            tension: 0.1,
+            yAxisID: 'y1'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                type: 'linear',
+                display: true,
+                position: 'left',
+                title: {
+                    display: true,
+                    text: 'Nombre de commandes'
+                }
+            },
+            y1: {
+                type: 'linear',
+                display: true,
+                position: 'right',
+                title: {
+                    display: true,
+                    text: 'Revenus (€)'
+                },
+                grid: {
+                    drawOnChartArea: false,
+                },
+            }
+        }
+    }
+});
+
+// Sélecteur de période
+document.getElementById('periodSelect').addEventListener('change', function() {
+    const days = this.value;
+    window.location.href = `?days=${days}`;
+});
+</script>
+{% endblock %}

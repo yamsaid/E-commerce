@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login, logout, authenticate
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse, Http404
-from django.db.models import Q
+from django.db.models import Q, Avg
 from django.utils import timezone
 from django.core.paginator import Paginator
 import json
@@ -14,7 +14,13 @@ import zipfile
 import io
 import os
 from .models import Category, Product, Order, OrderItem, Payment, Download, Review, VideoSequence, BookCollection, PersonalDevelopmentSection, Contact
+from .forms import ReviewForm
 from decimal import Decimal
+from django.contrib.admin.views.decorators import staff_member_required
+from django.db.models import Sum, Count, Avg
+from django.db.models.functions import TruncDate, TruncMonth
+from datetime import datetime, timedelta
+from django.utils import timezone
 
 
 def test_view(request):
@@ -42,11 +48,24 @@ def home(request):
         
         categories = Category.objects.filter(is_active=True)[:6]
         
+        # Récupérer les avis approuvés pour la page d'accueil
+        approved_reviews = Review.objects.filter(
+            is_approved=True
+        ).select_related('user', 'product').order_by('-created_at')[:6]
+        
+        # Récupérer les produits populaires avec avis
+        products_with_reviews = Product.objects.filter(
+            is_active=True,
+            rating_count__gt=0
+        ).order_by('-rating')[:4]
+        
         context = {
             'featured_products': featured_products,
             'new_products': new_products,
             'popular_products': popular_products,
             'categories': categories,
+            'reviews': approved_reviews,
+            'products_with_reviews': products_with_reviews,
         }
         
         return render(request, 'store/home.html', context)
@@ -57,6 +76,8 @@ def home(request):
             'new_products': [],
             'popular_products': [],
             'categories': [],
+            'reviews': [],
+            'products_with_reviews': [],
         }
         return render(request, 'store/home.html', context)
 
@@ -139,6 +160,41 @@ def product_detail(request, slug):
     }
     
     return render(request, 'store/product_detail.html', context)
+
+
+@login_required
+def add_review(request, slug):
+    """Créer ou mettre à jour un avis utilisateur pour un produit"""
+    product = get_object_or_404(Product, slug=slug, is_active=True)
+    if request.method != 'POST':
+        return redirect('store:product_detail', slug=slug)
+
+    form = ReviewForm(request.POST)
+    if form.is_valid():
+        data = form.cleaned_data
+        # Un avis par user/prod (hors commande spécifique)
+        Review.objects.update_or_create(
+            product=product,
+            user=request.user,
+            order=None,
+            defaults={
+                'rating': data['rating'],
+                'title': data['title'],
+                'comment': data['comment'],
+                'is_approved': True,  # basculer à False si modération requise
+            },
+        )
+
+        # Recalcule la note moyenne et le nombre d'avis
+        approved_qs = product.reviews.filter(is_approved=True)
+        product.rating_count = approved_qs.count()
+        product.rating = approved_qs.aggregate(avg=Avg('rating'))['avg'] or 0
+        product.save(update_fields=['rating', 'rating_count'])
+
+        messages.success(request, 'Merci pour votre avis !')
+    else:
+        messages.error(request, "Formulaire invalide. Veuillez corriger les champs.")
+    return redirect('store:product_detail', slug=slug)
 
 
 def category_detail(request, slug):
@@ -357,6 +413,74 @@ def payment(request, order_number):
     tax_fcfa = order.subtotal_fcfa * Decimal('0.18')
     tax_eur = order.subtotal_eur * Decimal('0.18')
     
+    # Traitement des paiements Mobile Money
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            payment_type = data.get('payment_type')
+            
+            if payment_type == 'mobile_money':
+                from .services import MobileMoneyService
+                
+                operator = data.get('operator')
+                phone_number = data.get('phone_number')
+                
+                if not operator or not phone_number:
+                    return JsonResponse({
+                        'success': False,
+                        'error': 'Opérateur et numéro de téléphone requis'
+                    })
+                
+                # Valider le numéro de téléphone
+                if not phone_number.startswith('+225') and not phone_number.startswith('225'):
+                    phone_number = '+225' + phone_number.lstrip('0')
+                
+                # Initier le paiement Mobile Money
+                mobile_money_service = MobileMoneyService()
+                result = mobile_money_service.initiate_payment(
+                    order=order,
+                    operator=operator,
+                    phone_number=phone_number,
+                    amount_fcfa=order.total_fcfa
+                )
+                
+                if result['success']:
+                    return JsonResponse({
+                        'success': True,
+                        'transaction_id': result['transaction_id'],
+                        'message': result['message'],
+                        'redirect_url': f'/payment-status/{result["transaction_id"]}/'
+                    })
+                else:
+                    return JsonResponse({
+                        'success': False,
+                        'error': result['error']
+                    })
+            
+            elif payment_type == 'stripe':
+                # Logique Stripe existante (à implémenter)
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Paiement Stripe en cours de développement'
+                })
+            
+            else:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Type de paiement non supporté'
+                })
+                
+        except json.JSONDecodeError:
+            return JsonResponse({
+                'success': False,
+                'error': 'Données invalides'
+            })
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'error': str(e)
+            })
+    
     context = {
         'order': order,
         'tax_fcfa': tax_fcfa,
@@ -402,6 +526,106 @@ def payment_cancel(request, order_number):
 
 
 @login_required
+def payment_status(request, transaction_id):
+    """Page de statut du paiement Mobile Money"""
+    try:
+        from .models import MobileMoneyTransaction
+        from .services import MobileMoneyService
+        
+        transaction = MobileMoneyTransaction.objects.get(
+            transaction_id=transaction_id,
+            order__user=request.user
+        )
+        
+        # Vérifier le statut actuel
+        mobile_money_service = MobileMoneyService()
+        status_result = mobile_money_service.check_payment_status(transaction_id)
+        
+        context = {
+            'transaction': transaction,
+            'status_result': status_result,
+            'order': transaction.order
+        }
+        
+        return render(request, 'store/payment_status.html', context)
+        
+    except MobileMoneyTransaction.DoesNotExist:
+        messages.error(request, 'Transaction non trouvée.')
+        return redirect('store:my_orders')
+
+
+@login_required
+def check_payment_status_api(request, transaction_id):
+    """API pour vérifier le statut d'un paiement"""
+    try:
+        from .models import MobileMoneyTransaction
+        from .services import MobileMoneyService
+        
+        transaction = MobileMoneyTransaction.objects.get(
+            transaction_id=transaction_id,
+            order__user=request.user
+        )
+        
+        mobile_money_service = MobileMoneyService()
+        status_result = mobile_money_service.check_payment_status(transaction_id)
+        
+        return JsonResponse(status_result)
+        
+    except MobileMoneyTransaction.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Transaction non trouvée'
+        })
+
+
+@login_required
+def retry_mobile_money_payment(request, transaction_id):
+    """Réessayer un paiement Mobile Money échoué"""
+    try:
+        from .models import MobileMoneyTransaction
+        from .services import MobileMoneyService
+        
+        transaction = MobileMoneyTransaction.objects.get(
+            transaction_id=transaction_id,
+            order__user=request.user
+        )
+        
+        if not transaction.can_retry():
+            return JsonResponse({
+                'success': False,
+                'error': 'Cette transaction ne peut pas être relancée'
+            })
+        
+        # Créer une nouvelle transaction
+        mobile_money_service = MobileMoneyService()
+        result = mobile_money_service.initiate_payment(
+            order=transaction.order,
+            operator=transaction.operator,
+            phone_number=transaction.phone_number,
+            amount_fcfa=transaction.amount_fcfa
+        )
+        
+        if result['success']:
+            return JsonResponse({
+                'success': True,
+                'transaction_id': result['transaction_id'],
+                'message': result['message'],
+                'redirect_url': f'/payment-status/{result["transaction_id"]}/'
+            })
+        else:
+            return JsonResponse({
+                'success': False,
+                'error': result['error']
+            })
+            
+    except MobileMoneyTransaction.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Transaction non trouvée'
+        })
+
+
+@login_required
 def order_detail(request, order_number):
     """Détail d'une commande"""
     order = get_object_or_404(Order, order_number=order_number, user=request.user)
@@ -442,15 +666,10 @@ def download_file(request, token):
         # Incrémenter le compteur de téléchargements du produit
         download.product.increment_downloads()
         
-        # Vérifier si le produit a des séquences vidéo (formation avec plusieurs fichiers)
-        if download.product.product_type in ['formation', 'video'] and download.product.video_sequences.exists():
+        # Vérifier si le produit est composé de plusieurs éléments
+        if download.product.is_composite_product():
             return download_compressed_product(request, download.product, download)
         else:
-            # Incrémenter le compteur de téléchargements de l'instance Download
-            download.downloads_count += 1
-            download.last_download_at = timezone.now()
-            download.save()
-            
             # Retourner le fichier simple
             response = HttpResponse(download.product.product_file, content_type='application/octet-stream')
             response['Content-Disposition'] = f'attachment; filename="{download.product.product_file.name.split("/")[-1]}"'
@@ -502,12 +721,30 @@ def my_downloads(request):
 def login_view(request):
     """Connexion"""
     if request.method == 'POST':
-        username = request.POST.get('username')
+        identifier = request.POST.get('username')
         password = request.POST.get('password')
-        user = authenticate(request, username=username, password=password)
+        remember_me = request.POST.get('remember_me')
+        # Permettre la connexion via email ou nom d'utilisateur
+        user = None
+        if identifier:
+            if '@' in identifier:
+                try:
+                    user_obj = User.objects.get(email__iexact=identifier)
+                    user = authenticate(request, username=user_obj.username, password=password)
+                except User.DoesNotExist:
+                    user = None
+            else:
+                user = authenticate(request, username=identifier, password=password)
         
         if user is not None:
             login(request, user)
+            # Gérer la persistance de session si "Se souvenir de moi" est coché
+            if remember_me:
+                # 14 jours
+                request.session.set_expiry(1209600)
+            else:
+                # Session navigateur
+                request.session.set_expiry(0)
             messages.success(request, 'Connexion réussie.')
             return redirect('store:home')
         else:
@@ -519,20 +756,31 @@ def login_view(request):
 def register_view(request):
     """Inscription"""
     if request.method == 'POST':
-        # Logique d'inscription simplifiée
-        username = request.POST.get('username')
-        email = request.POST.get('email')
-        password = request.POST.get('password')
-        
-        if User.objects.filter(username=username).exists():
-            messages.error(request, 'Ce nom d\'utilisateur existe déjà.')
-        elif User.objects.filter(email=email).exists():
-            messages.error(request, 'Cette adresse email existe déjà.')
+        username = request.POST.get('username', '').strip()
+        email = request.POST.get('email', '').strip().lower()
+        password = request.POST.get('password', '')
+        confirm_password = request.POST.get('confirm_password', '')
+        terms = request.POST.get('terms')
+
+        # Validations côté serveur
+        if not username or len(username) < 3:
+            messages.error(request, "Le nom d'utilisateur doit contenir au moins 3 caractères.")
+        elif not email:
+            messages.error(request, "L'adresse email est obligatoire.")
+        elif password != confirm_password:
+            messages.error(request, "Les mots de passe ne correspondent pas.")
+        elif len(password) < 8 or not any(c.isupper() for c in password) or not any(c.isdigit() for c in password):
+            messages.error(request, "Le mot de passe doit faire au moins 8 caractères, contenir une majuscule et un chiffre.")
+        elif not terms:
+            messages.error(request, "Vous devez accepter les conditions d'utilisation.")
+        elif User.objects.filter(username__iexact=username).exists():
+            messages.error(request, "Ce nom d'utilisateur existe déjà.")
+        elif User.objects.filter(email__iexact=email).exists():
+            messages.error(request, "Cette adresse email existe déjà.")
         else:
             user = User.objects.create_user(username=username, email=email, password=password)
-            login(request, user)
-            messages.success(request, 'Compte créé avec succès.')
-            return redirect('store:home')
+            messages.success(request, 'Compte créé avec succès. Vous pouvez maintenant vous connecter.')
+            return redirect('store:login')
     
     return render(request, 'store/register.html')
 
@@ -611,6 +859,53 @@ def video_preview(request, product_id):
     }
     
     return render(request, 'store/video_preview.html', context)
+
+
+def sequence_video_preview(request, sequence_id):
+    """API pour servir l'aperçu vidéo d'une séquence spécifique"""
+    try:
+        sequence = get_object_or_404(VideoSequence, id=sequence_id, is_active=True)
+        
+        # Vérifier que la séquence a un fichier vidéo
+        if not sequence.video_file:
+            return JsonResponse({
+                'error': 'Aucun fichier vidéo disponible pour cette séquence'
+            }, status=404)
+        
+        # Vérifier que le fichier existe physiquement
+        if not os.path.exists(sequence.video_file.path):
+            return JsonResponse({
+                'error': 'Fichier vidéo introuvable'
+            }, status=404)
+        
+        # Récupérer les informations du produit associé
+        product = sequence.product
+        total_sequences = product.video_sequences.filter(is_active=True).count()
+        
+        # Retourner les informations de la séquence
+        return JsonResponse({
+            'success': True,
+            'sequence': {
+                'id': sequence.id,
+                'title': sequence.title,
+                'description': sequence.description or '',
+                'duration': sequence.get_duration_display(),
+                'order': sequence.order,
+                'is_preview': sequence.is_preview,
+                'video_url': sequence.video_file.url,
+                'level': getattr(product, 'level', None),
+                'product_id': product.id,
+                'product_slug': product.slug,
+                'product_title': product.title,
+                'total_sequences': total_sequences,
+                'preview_sequences': product.video_sequences.filter(is_active=True, is_preview=True).count(),
+            }
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'error': f'Erreur lors de la récupération de la séquence: {str(e)}'
+        }, status=500)
 
 
 def product_video_sequences(request, product_id):
@@ -727,26 +1022,6 @@ def contact(request):
     }
     return render(request, 'store/contact.html', context)
 
-def reviews(request):
-    """Page des avis et commentaires"""
-    # Récupérer les avis approuvés
-    approved_reviews = Review.objects.filter(
-        is_approved=True
-    ).select_related('user', 'product').order_by('-created_at')[:20]
-    
-    # Récupérer les produits populaires pour afficher leurs avis
-    popular_products = Product.objects.filter(
-        is_active=True,
-        rating_count__gt=0
-    ).order_by('-rating')[:6]
-    
-    context = {
-        'reviews': approved_reviews,
-        'popular_products': popular_products,
-    }
-    return render(request, 'store/reviews.html', context)
-
-
 @login_required
 def download_free_product(request, product_id):
     """Téléchargement direct d'un produit gratuit"""
@@ -758,6 +1033,11 @@ def download_free_product(request, product_id):
             messages.error(request, "Ce produit n'est pas gratuit.")
             return redirect('store:product_detail', slug=product.slug)
         
+        # Vérifier que le fichier existe
+        if not product.product_file:
+            messages.error(request, "Le fichier de ce produit n'est pas disponible.")
+            return redirect('store:product_detail', slug=product.slug)
+        
         # Incrémenter le compteur de téléchargements du produit
         product.increment_downloads()
         
@@ -766,24 +1046,39 @@ def download_free_product(request, product_id):
             user=request.user,
             product=product,
             order=None,  # Pas d'ordre pour les produits gratuits
-            download_url=product.product_file.url,
+            download_url=product.product_file.url if product.product_file else "",
             download_token=uuid.uuid4().hex,
             max_downloads=10,  # Plus de téléchargements pour les produits gratuits
             expires_at=timezone.now() + timedelta(days=365),  # Expire dans 1 an
             is_active=True
         )
         
-        # Vérifier si le produit a des séquences vidéo (formation avec plusieurs fichiers)
-        if product.product_type in ['formation', 'video'] and product.video_sequences.exists():
-            return download_compressed_product(request, product, download)
+        # Vérifier si le produit est composé de plusieurs éléments
+        if product.is_composite_product():
+            return download_compressed_product(request, product=product, download=download)
         else:
             # Retourner le fichier simple
-            response = HttpResponse(product.product_file, content_type='application/octet-stream')
-            response['Content-Disposition'] = f'attachment; filename="{product.product_file.name.split("/")[-1]}"'
-            return response
+            try:
+                # Ouvrir le fichier en mode binaire
+                with open(product.product_file.path, 'rb') as file:
+                    file_content = file.read()
+                
+                # Créer la réponse HTTP
+                response = HttpResponse(file_content, content_type='application/octet-stream')
+                filename = os.path.basename(product.product_file.name)
+                response['Content-Disposition'] = f'attachment; filename="{filename}"'
+                response['Content-Length'] = len(file_content)
+                return response
+                
+            except (IOError, OSError) as e:
+                messages.error(request, "Erreur lors de l'accès au fichier.")
+                return redirect('store:product_detail', slug=product.slug)
         
+    except Product.DoesNotExist:
+        messages.error(request, "Produit non trouvé.")
+        return redirect('store:home')
     except Exception as e:
-        messages.error(request, "Erreur lors du téléchargement.")
+        messages.error(request, f"Erreur lors du téléchargement: {str(e)}")
         return redirect('store:product_detail', slug=product.slug)
 
 
@@ -822,38 +1117,153 @@ def download_compressed_product(request, product_id=None, product=None, download
         # Créer un buffer en mémoire pour le fichier ZIP
         zip_buffer = io.BytesIO()
         
+        # Vérifier qu'il y a du contenu à télécharger
+        has_content = False
+        
         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
             # Ajouter le fichier principal du produit
             if product.product_file:
-                main_filename = os.path.basename(product.product_file.name)
-                zip_file.writestr(f"{product.title}/{main_filename}", product.product_file.read())
+                try:
+                    main_filename = os.path.basename(product.product_file.name)
+                    zip_file.writestr(f"{product.title}/{main_filename}", product.product_file.read())
+                    has_content = True
+                except Exception as e:
+                    print(f"Erreur lors de l'ajout du fichier principal: {e}")
             
             # Ajouter les séquences vidéo si elles existent
             video_sequences = product.video_sequences.filter(is_active=True).order_by('order')
             if video_sequences.exists():
+                valid_sequences = 0
                 for sequence in video_sequences:
                     if sequence.video_file:
-                        # Créer un nom de fichier sécurisé
-                        safe_title = "".join(c for c in sequence.title if c.isalnum() or c in (' ', '-', '_')).rstrip()
-                        sequence_filename = f"{sequence.order:02d}_{safe_title}{os.path.splitext(sequence.video_file.name)[1]}"
-                        zip_file.writestr(f"{product.title}/sequences/{sequence_filename}", sequence.video_file.read())
+                        try:
+                            # Vérifier que le fichier existe physiquement
+                            if os.path.exists(sequence.video_file.path):
+                                # Créer un nom de fichier sécurisé
+                                safe_title = "".join(c for c in sequence.title if c.isalnum() or c in (' ', '-', '_')).rstrip()
+                                sequence_filename = f"{sequence.order:02d}_{safe_title}{os.path.splitext(sequence.video_file.name)[1]}"
+                                zip_file.writestr(f"{product.title}/sequences/{sequence_filename}", sequence.video_file.read())
+                                valid_sequences += 1
+                            else:
+                                print(f"Fichier manquant pour la séquence: {sequence.title}")
+                        except Exception as e:
+                            print(f"Erreur lors de l'ajout de la séquence {sequence.title}: {e}")
+                
+                if valid_sequences > 0:
+                    has_content = True
+                    # Créer le dossier sequences seulement s'il y a des fichiers valides
+                    zip_file.writestr(f"{product.title}/sequences/", "")
+                else:
+                    # Aucune séquence valide trouvée
+                    messages.warning(request, f"Attention: Aucune séquence vidéo valide trouvée pour {product.title}")
+            
+            # Ajouter les livres de la collection si c'est une collection
+            if product.collection:
+                collection = product.collection
+                collection_books = collection.books.filter(is_active=True)
+                if collection_books.exists():
+                    valid_books = 0
+                    for book in collection_books:
+                        if book.product_file:
+                            try:
+                                if os.path.exists(book.product_file.path):
+                                    book_filename = os.path.basename(book.product_file.name)
+                                    zip_file.writestr(f"{product.title}/collection_{collection.slug}/{book_filename}", book.product_file.read())
+                                    valid_books += 1
+                            except Exception as e:
+                                print(f"Erreur lors de l'ajout du livre {book.title}: {e}")
+                    
+                    if valid_books > 0:
+                        has_content = True
+                        zip_file.writestr(f"{product.title}/collection_{collection.slug}/", "")
+            
+            # Ajouter les livres de la section développement personnel si applicable
+            if product.personal_development_section:
+                section = product.personal_development_section
+                section_books = section.books.filter(is_active=True)
+                if section_books.exists():
+                    valid_books = 0
+                    for book in section_books:
+                        if book.product_file:
+                            try:
+                                if os.path.exists(book.product_file.path):
+                                    book_filename = os.path.basename(book.product_file.name)
+                                    zip_file.writestr(f"{product.title}/section_{section.slug}/{book_filename}", book.product_file.read())
+                                    valid_books += 1
+                            except Exception as e:
+                                print(f"Erreur lors de l'ajout du livre {book.title}: {e}")
+                    
+                    if valid_books > 0:
+                        has_content = True
+                        zip_file.writestr(f"{product.title}/section_{section.slug}/", "")
+            
+            # Vérifier s'il y a du contenu à télécharger
+            if not has_content:
+                messages.error(request, f"Aucun contenu téléchargeable trouvé pour {product.title}. Veuillez contacter l'administrateur.")
+                return redirect('store:product_detail', slug=product.slug)
             
             # Ajouter un fichier README avec les informations du produit
-            readme_content = f"""FORMATION: {product.title}
+            readme_content = f"""PRODUIT: {product.title}
 
 Description: {product.description}
 
 Informations:
 - Type: {product.get_product_type_display()}
-- Niveau: {product.level}
+- Niveau: {product.level or 'Non spécifié'}
 - Langue: {product.language}
-- Durée: {product.duration}
+- Durée: {product.duration or 'Non spécifiée'}
+- Catégorie: {product.category.name}
 
-Séquences vidéo incluses:
 """
-            for sequence in video_sequences:
-                readme_content += f"- {sequence.order:02d}. {sequence.title} ({sequence.get_duration_display()})\n"
             
+            # Ajouter les informations sur les séquences vidéo
+            if video_sequences.exists():
+                valid_sequences = [seq for seq in video_sequences if seq.video_file and os.path.exists(seq.video_file.path)]
+                readme_content += f"\nSÉQUENCES VIDÉO INCLUSES ({len(valid_sequences)} séquences):\n"
+                for sequence in valid_sequences:
+                    readme_content += f"- {sequence.order:02d}. {sequence.title} ({sequence.get_duration_display()})\n"
+                    if sequence.description:
+                        readme_content += f"  Description: {sequence.description}\n"
+            
+            # Ajouter les informations sur la collection
+            if product.collection:
+                collection = product.collection
+                collection_books = collection.books.filter(is_active=True)
+                valid_books = [book for book in collection_books if book.product_file and os.path.exists(book.product_file.path)]
+                readme_content += f"\nCOLLECTION: {collection.title}\n"
+                readme_content += f"Description: {collection.description}\n"
+                readme_content += f"Livres inclus ({len(valid_books)} livres):\n"
+                for book in valid_books:
+                    readme_content += f"- {book.title}\n"
+                    if book.short_description:
+                        readme_content += f"  Description: {book.short_description}\n"
+            
+            # Ajouter les informations sur la section développement personnel
+            if product.personal_development_section:
+                section = product.personal_development_section
+                section_books = section.books.filter(is_active=True)
+                valid_books = [book for book in section_books if book.product_file and os.path.exists(book.product_file.path)]
+                readme_content += f"\nSECTION DÉVELOPPEMENT PERSONNEL: {section.name}\n"
+                readme_content += f"Description: {section.description}\n"
+                readme_content += f"Livres inclus ({len(valid_books)} livres):\n"
+                for book in valid_books:
+                    readme_content += f"- {book.title}\n"
+                    if book.short_description:
+                        readme_content += f"  Description: {book.short_description}\n"
+            
+            # Ajouter les informations légales
+            readme_content += f"""
+
+INFORMATIONS LÉGALES:
+- Ce produit est fourni par NovaLearn
+- Utilisation personnelle uniquement
+- Tous droits réservés
+- Date de téléchargement: {timezone.now().strftime('%d/%m/%Y à %H:%M')}
+
+Pour toute question, contactez-nous via notre site web.
+"""
+            
+            # Ajouter le README à l'archive
             zip_file.writestr(f"{product.title}/README.txt", readme_content)
         
         # Préparer la réponse
@@ -861,14 +1271,356 @@ Séquences vidéo incluses:
         response = HttpResponse(zip_buffer.getvalue(), content_type='application/zip')
         response['Content-Disposition'] = f'attachment; filename="{product.title.replace(" ", "_")}.zip"'
         
-        # Incrémenter le compteur de téléchargements si un objet download est fourni
+        # Incrémenter le compteur de téléchargements
         if download:
             download.downloads_count += 1
             download.last_download_at = timezone.now()
             download.save()
+        
+        product.increment_downloads()
         
         return response
         
     except Exception as e:
         messages.error(request, f"Erreur lors de la création de l'archive: {str(e)}")
         return redirect('store:product_detail', slug=product.slug)
+
+def oauth_google(request):
+    """Redirection vers l'authentification Google OAuth"""
+    try:
+        from social_django.utils import load_strategy, load_backend
+        from social_core.exceptions import AuthException
+        
+        strategy = load_strategy(request)
+        backend = load_backend(strategy=strategy, name='google-oauth2', redirect_uri=None)
+        
+        # Rediriger vers l'authentification Google
+        return backend.start()
+    except Exception as e:
+        messages.error(request, f'Erreur lors de la connexion avec Google: {str(e)}')
+        return redirect('store:login')
+
+def oauth_facebook(request):
+    """Redirection vers l'authentification Facebook OAuth"""
+    try:
+        from social_django.utils import load_strategy, load_backend
+        from social_core.exceptions import AuthException
+        
+        strategy = load_strategy(request)
+        backend = load_backend(strategy=strategy, name='facebook', redirect_uri=None)
+        
+        # Rediriger vers l'authentification Facebook
+        return backend.start()
+    except Exception as e:
+        messages.error(request, f'Erreur lors de la connexion avec Facebook: {str(e)}')
+        return redirect('store:login')
+
+def oauth_callback(request):
+    """Gestion du callback OAuth"""
+    try:
+        from social_django.utils import load_strategy, load_backend
+        from social_core.exceptions import AuthException
+        
+        strategy = load_strategy(request)
+        backend = load_backend(strategy=strategy, name=request.GET.get('backend'), redirect_uri=None)
+        
+        # Traiter la réponse OAuth
+        user = backend.complete(user=request.user)
+        
+        if user and user.is_active:
+            login(request, user)
+            messages.success(request, f'Connexion réussie avec {backend.name.title()}.')
+            return redirect('store:home')
+        else:
+            messages.error(request, 'Échec de l\'authentification OAuth.')
+            return redirect('store:login')
+            
+    except Exception as e:
+        messages.error(request, f'Erreur lors de l\'authentification OAuth: {str(e)}')
+        return redirect('store:login')
+
+
+@staff_member_required
+def admin_dashboard(request):
+    """Dashboard administrateur pour suivre l'état des achats"""
+    
+    # Période de référence (30 derniers jours par défaut)
+    days = request.GET.get('days', 30)
+    try:
+        days = int(days)
+    except ValueError:
+        days = 30
+    
+    end_date = timezone.now()
+    start_date = end_date - timedelta(days=days)
+    
+    # Statistiques générales
+    total_orders = Order.objects.filter(created_at__gte=start_date).count()
+    total_revenue = Order.objects.filter(
+        status='paid',
+        created_at__gte=start_date
+    ).aggregate(total=Sum('total_eur'))['total'] or 0
+    
+    # Statistiques par statut
+    orders_by_status = Order.objects.filter(
+        created_at__gte=start_date
+    ).values('status').annotate(
+        count=Count('id'),
+        total_amount=Sum('total_eur')
+    ).order_by('status')
+    
+    # Produits les plus vendus
+    top_products = OrderItem.objects.filter(
+        order__status='paid',
+        order__created_at__gte=start_date
+    ).values(
+        'product__title'
+    ).annotate(
+        total_sales=Count('id'),
+        total_revenue=Sum('price_eur')
+    ).order_by('-total_sales')[:10]
+    
+    # Évolution des ventes (par jour)
+    daily_sales = Order.objects.filter(
+        status='paid',
+        created_at__gte=start_date
+    ).annotate(
+        date=TruncDate('created_at')
+    ).values('date').annotate(
+        orders=Count('id'),
+        revenue=Sum('total_eur')
+    ).order_by('date')
+    
+    # Taux de conversion
+    total_cart_abandoned = Order.objects.filter(
+        status='pending',
+        created_at__gte=start_date
+    ).count()
+    
+    conversion_rate = 0
+    if total_orders > 0:
+        conversion_rate = ((total_orders - total_cart_abandoned) / total_orders) * 100
+    
+    # Statistiques des téléchargements
+    total_downloads = Download.objects.filter(
+        created_at__gte=start_date
+    ).count()
+    
+    downloads_by_product = Download.objects.filter(
+        created_at__gte=start_date
+    ).values(
+        'product__title'
+    ).annotate(
+        downloads=Count('id')
+    ).order_by('-downloads')[:10]
+    
+    # Produits gratuits populaires
+    free_downloads = Download.objects.filter(
+        product__pricing_type='free',
+        created_at__gte=start_date
+    ).values(
+        'product__title'
+    ).annotate(
+        downloads=Count('id')
+    ).order_by('-downloads')[:5]
+    
+    # Utilisateurs actifs
+    active_users = User.objects.filter(
+        orders__created_at__gte=start_date
+    ).distinct().count()
+    
+    # Nouveaux utilisateurs
+    new_users = User.objects.filter(
+        date_joined__gte=start_date
+    ).count()
+    
+    context = {
+        'days': days,
+        'start_date': start_date,
+        'end_date': end_date,
+        
+        # Statistiques générales
+        'total_orders': total_orders,
+        'total_revenue': total_revenue,
+        'conversion_rate': round(conversion_rate, 2),
+        'total_downloads': total_downloads,
+        'active_users': active_users,
+        'new_users': new_users,
+        
+        # Données détaillées
+        'orders_by_status': orders_by_status,
+        'top_products': top_products,
+        'daily_sales': list(daily_sales),
+        'downloads_by_product': downloads_by_product,
+        'free_downloads': free_downloads,
+        
+        # Calculs pour les graphiques
+        'chart_labels': [item['date'].strftime('%d/%m') for item in daily_sales],
+        'chart_orders': [item['orders'] for item in daily_sales],
+        'chart_revenue': [float(item['revenue'] or 0) for item in daily_sales],
+    }
+    
+    return render(request, 'store/admin/dashboard.html', context)
+
+
+@staff_member_required
+def admin_orders(request):
+    """Vue détaillée des commandes pour l'administrateur"""
+    
+    # Filtres
+    status_filter = request.GET.get('status', '')
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+    search = request.GET.get('search', '')
+    
+    orders = Order.objects.all().order_by('-created_at')
+    
+    # Appliquer les filtres
+    if status_filter:
+        orders = orders.filter(status=status_filter)
+    
+    if date_from:
+        try:
+            date_from = datetime.strptime(date_from, '%Y-%m-%d')
+            orders = orders.filter(created_at__gte=date_from)
+        except ValueError:
+            pass
+    
+    if date_to:
+        try:
+            date_to = datetime.strptime(date_to, '%Y-%m-%d')
+            orders = orders.filter(created_at__lte=date_to)
+        except ValueError:
+            pass
+    
+    if search:
+        orders = orders.filter(
+            Q(order_number__icontains=search) |
+            Q(user__username__icontains=search) |
+            Q(user__email__icontains=search) |
+            Q(items__product__title__icontains=search)
+        ).distinct()
+    
+    # Pagination
+    paginator = Paginator(orders, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'page_obj': page_obj,
+        'status_filter': status_filter,
+        'date_from': date_from,
+        'date_to': date_to,
+        'search': search,
+        'status_choices': Order.STATUS_CHOICES,
+    }
+    
+    return render(request, 'store/admin/orders.html', context)
+
+
+@staff_member_required
+def admin_order_detail(request, order_number):
+    """Détail d'une commande pour l'administrateur"""
+    
+    order = get_object_or_404(Order, order_number=order_number)
+    
+    if request.method == 'POST':
+        # Mise à jour du statut
+        new_status = request.POST.get('status')
+        if new_status and new_status in dict(Order.STATUS_CHOICES):
+            old_status = order.status
+            order.status = new_status
+            order.save()
+            
+            # Envoyer un email de notification si le statut change
+            if old_status != new_status:
+                messages.success(request, f'Statut de la commande mis à jour vers {new_status}')
+    
+    context = {
+        'order': order,
+        'status_choices': Order.STATUS_CHOICES,
+    }
+    
+    return render(request, 'store/admin/order_detail.html', context)
+
+
+@staff_member_required
+def admin_analytics(request):
+    """Analytics détaillés pour l'administrateur"""
+    
+    # Période
+    period = request.GET.get('period', 'month')
+    if period == 'week':
+        start_date = timezone.now() - timedelta(days=7)
+    elif period == 'month':
+        start_date = timezone.now() - timedelta(days=30)
+    elif period == 'quarter':
+        start_date = timezone.now() - timedelta(days=90)
+    else:
+        start_date = timezone.now() - timedelta(days=365)
+    
+    # Revenus par mois
+    monthly_revenue = Order.objects.filter(
+        status='paid',
+        created_at__gte=start_date
+    ).annotate(
+        month=TruncMonth('created_at')
+    ).values('month').annotate(
+        revenue=Sum('total_eur'),
+        orders=Count('id')
+    ).order_by('month')
+    
+    # Top catégories
+    top_categories = OrderItem.objects.filter(
+        order__status='paid',
+        order__created_at__gte=start_date
+    ).values(
+        'product__category__name'
+    ).annotate(
+        sales=Count('id'),
+        revenue=Sum('price_eur')
+    ).order_by('-revenue')[:10]
+    
+    # Performance des produits
+    product_performance = Product.objects.filter(
+        orderitem__order__status='paid',
+        orderitem__order__created_at__gte=start_date
+    ).annotate(
+        total_sales=Count('orderitem'),
+        total_revenue=Sum('orderitem__price_eur'),
+        avg_rating=Avg('reviews__rating')
+    ).order_by('-total_revenue')[:20]
+    
+    # Taux de conversion par produit
+    conversion_by_product = []
+    for product in Product.objects.filter(is_active=True)[:20]:
+        views = product.views_count or 0
+        sales = OrderItem.objects.filter(
+            product=product,
+            order__status='paid',
+            order__created_at__gte=start_date
+        ).count()
+        
+        conversion = 0
+        if views > 0:
+            conversion = (sales / views) * 100
+        
+        conversion_by_product.append({
+            'product': product,
+            'views': views,
+            'sales': sales,
+            'conversion': round(conversion, 2)
+        })
+    
+    conversion_by_product.sort(key=lambda x: x['conversion'], reverse=True)
+    
+    context = {
+        'period': period,
+        'start_date': start_date,
+        'monthly_revenue': list(monthly_revenue),
+        'top_categories': top_categories,
+        'product_performance': product_performance,
+        'conversion_by_product': conversion_by_product[:10],
+    }
+    
+    return render(request, 'store/admin/analytics.html', context)

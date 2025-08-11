@@ -1,0 +1,341 @@
+{% extends 'store/base.html' %}
+
+{% block title %}Statut du paiement - NovaLearn{% endblock %}
+
+{% block extra_css %}
+<style>
+    .status-pending { color: #f59e0b; }
+    .status-initiated { color: #3b82f6; }
+    .status-processing { color: #3b82f6; }
+    .status-success { color: #10b981; }
+    .status-failed { color: #ef4444; }
+    .status-cancelled { color: #6b7280; }
+    .status-expired { color: #f97316; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="bg-gray-50 min-h-screen">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900">Statut du paiement</h1>
+            <p class="mt-2 text-gray-600">Transaction #{{ transaction.transaction_id }}</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Statut du paiement -->
+            <div>
+                <div class="bg-white rounded-xl shadow-sm p-6">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-6">Statut de votre transaction</h2>
+                    
+                    <!-- Informations de la transaction -->
+                    <div class="space-y-4 mb-6">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Opérateur:</span>
+                            <span class="font-medium">
+                                {% if transaction.operator == 'orange' %}
+                                    <i class="fas fa-mobile-alt text-orange-500 mr-2"></i>Orange Money
+                                {% elif transaction.operator == 'mtn' %}
+                                    <i class="fas fa-mobile-alt text-yellow-500 mr-2"></i>MTN Money
+                                {% elif transaction.operator == 'moov' %}
+                                    <i class="fas fa-mobile-alt text-blue-500 mr-2"></i>Moov Money
+                                {% elif transaction.operator == 'wave' %}
+                                    <i class="fas fa-mobile-alt text-green-500 mr-2"></i>Wave
+                                {% endif %}
+                            </span>
+                        </div>
+                        
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Numéro:</span>
+                            <span class="font-medium">{{ transaction.phone_number }}</span>
+                        </div>
+                        
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Montant:</span>
+                            <span class="font-medium text-lg text-primary">{{ transaction.amount_fcfa }} FCFA</span>
+                        </div>
+                        
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Statut:</span>
+                            <span class="font-medium status-{{ transaction.status }}">
+                                {{ transaction.get_status_display }}
+                            </span>
+                        </div>
+                        
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Créé le:</span>
+                            <span class="font-medium">{{ transaction.created_at|date:"d/m/Y H:i" }}</span>
+                        </div>
+                        
+                        {% if transaction.initiated_at %}
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Initiated le:</span>
+                            <span class="font-medium">{{ transaction.initiated_at|date:"d/m/Y H:i" }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        {% if transaction.completed_at %}
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Terminé le:</span>
+                            <span class="font-medium">{{ transaction.completed_at|date:"d/m/Y H:i" }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Expire le:</span>
+                            <span class="font-medium">{{ transaction.expires_at|date:"d/m/Y H:i" }}</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Actions selon le statut -->
+                    <div class="space-y-3">
+                        {% if transaction.status == 'pending' or transaction.status == 'initiated' %}
+                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                <div class="flex items-center">
+                                    <i class="fas fa-info-circle text-blue-500 mr-3"></i>
+                                    <div>
+                                        <h4 class="font-medium text-blue-900">Paiement en cours</h4>
+                                        <p class="text-sm text-blue-700 mt-1">
+                                            Vérifiez votre téléphone et confirmez le paiement. 
+                                            Vous recevrez un SMS de confirmation.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <button id="check-status-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold transition-colors">
+                                <i class="fas fa-sync-alt mr-2"></i>
+                                Vérifier le statut
+                            </button>
+                            
+                        {% elif transaction.status == 'success' %}
+                            <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                                <div class="flex items-center">
+                                    <i class="fas fa-check-circle text-green-500 mr-3"></i>
+                                    <div>
+                                        <h4 class="font-medium text-green-900">Paiement confirmé !</h4>
+                                        <p class="text-sm text-green-700 mt-1">
+                                            Votre paiement a été effectué avec succès. 
+                                            Vous pouvez maintenant télécharger vos produits.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <a href="{% url 'store:order_detail' transaction.order.order_number %}" 
+                               class="block w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-semibold transition-colors text-center">
+                                <i class="fas fa-download mr-2"></i>
+                                Télécharger mes produits
+                            </a>
+                            
+                        {% elif transaction.status == 'failed' %}
+                            <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                                <div class="flex items-center">
+                                    <i class="fas fa-exclamation-circle text-red-500 mr-3"></i>
+                                    <div>
+                                        <h4 class="font-medium text-red-900">Paiement échoué</h4>
+                                        <p class="text-sm text-red-700 mt-1">
+                                            Le paiement n'a pas pu être effectué. 
+                                            Vous pouvez réessayer ou choisir une autre méthode.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <button id="retry-btn" class="w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded-lg font-semibold transition-colors">
+                                <i class="fas fa-redo mr-2"></i>
+                                Réessayer
+                            </button>
+                            
+                        {% elif transaction.status == 'expired' %}
+                            <div class="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                                <div class="flex items-center">
+                                    <i class="fas fa-clock text-orange-500 mr-3"></i>
+                                    <div>
+                                        <h4 class="font-medium text-orange-900">Transaction expirée</h4>
+                                        <p class="text-sm text-orange-700 mt-1">
+                                            Le délai de paiement a expiré. 
+                                            Vous pouvez créer une nouvelle transaction.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <button id="retry-btn" class="w-full bg-orange-600 hover:bg-orange-700 text-white py-3 rounded-lg font-semibold transition-colors">
+                                <i class="fas fa-redo mr-2"></i>
+                                Nouvelle transaction
+                            </button>
+                            
+                        {% elif transaction.status == 'cancelled' %}
+                            <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                                <div class="flex items-center">
+                                    <i class="fas fa-ban text-gray-500 mr-3"></i>
+                                    <div>
+                                        <h4 class="font-medium text-gray-900">Paiement annulé</h4>
+                                        <p class="text-sm text-gray-700 mt-1">
+                                            Le paiement a été annulé. 
+                                            Vous pouvez réessayer ou choisir une autre méthode.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <button id="retry-btn" class="w-full bg-gray-600 hover:bg-gray-700 text-white py-3 rounded-lg font-semibold transition-colors">
+                                <i class="fas fa-redo mr-2"></i>
+                                Réessayer
+                            </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Résumé de la commande -->
+            <div>
+                <div class="bg-white rounded-xl shadow-sm p-6 sticky top-24">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Résumé de la commande</h3>
+                    
+                    <!-- Articles -->
+                    <div class="space-y-3 mb-6">
+                        {% for item in order.items.all %}
+                        <div class="flex items-center space-x-3">
+                            <div class="flex-shrink-0">
+                                {% if item.product.cover_image %}
+                                <img src="{{ item.product.cover_image.url }}" alt="{{ item.product.title }}" class="w-12 h-12 object-cover rounded-lg">
+                                {% else %}
+                                <div class="w-12 h-12 bg-gradient-to-br from-primary to-blue-600 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-book text-white"></i>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <h4 class="text-sm font-medium text-gray-900 truncate">{{ item.product.title }}</h4>
+                                <p class="text-xs text-gray-500">Quantité: {{ item.quantity }}</p>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-sm font-medium text-primary">{{ item.price_fcfa }} FCFA</div>
+                                <div class="text-xs text-gray-500">{{ item.price_eur }} EUR</div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Totaux -->
+                    <div class="border-t border-gray-200 pt-4 space-y-3">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">Sous-total</span>
+                            <span class="font-medium">{{ order.subtotal_fcfa }} FCFA</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">TVA (18%)</span>
+                            <span class="font-medium">{{ order.subtotal_fcfa|multiply:0.18|floatformat:0 }} FCFA</span>
+                        </div>
+                        <hr class="border-gray-200">
+                        <div class="flex justify-between text-lg font-semibold">
+                            <span>Total</span>
+                            <span class="text-primary">{{ order.total_fcfa }} FCFA</span>
+                        </div>
+                        <div class="text-sm text-gray-500 text-right">
+                            {{ order.total_eur }} EUR
+                        </div>
+                    </div>
+
+                    <!-- Informations de sécurité -->
+                    <div class="mt-6 pt-6 border-t border-gray-200">
+                        <div class="space-y-3 text-sm text-gray-600">
+                            <div class="flex items-center space-x-2">
+                                <i class="fas fa-shield-alt text-green-500"></i>
+                                <span>Paiement 100% sécurisé</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <i class="fas fa-mobile-alt text-blue-500"></i>
+                                <span>Confirmation par SMS</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <i class="fas fa-undo text-purple-500"></i>
+                                <span>Garantie 30 jours</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Vérification automatique du statut toutes les 10 secondes pour les transactions en cours
+{% if transaction.status in 'pending,initiated,processing' %}
+let statusCheckInterval;
+
+function startStatusCheck() {
+    statusCheckInterval = setInterval(checkStatus, 10000); // 10 secondes
+}
+
+function stopStatusCheck() {
+    if (statusCheckInterval) {
+        clearInterval(statusCheckInterval);
+    }
+}
+
+function checkStatus() {
+    fetch('{% url "store:check_payment_status_api" transaction.transaction_id %}')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.status === 'success') {
+                // Paiement confirmé, recharger la page
+                window.location.reload();
+            } else if (data.status in ['failed', 'expired', 'cancelled']) {
+                // Paiement échoué, arrêter la vérification et recharger
+                stopStatusCheck();
+                window.location.reload();
+            }
+        })
+        .catch(error => {
+            console.error('Erreur lors de la vérification du statut:', error);
+        });
+}
+
+// Démarrer la vérification automatique
+startStatusCheck();
+
+// Vérification manuelle
+document.getElementById('check-status-btn').addEventListener('click', function() {
+    this.disabled = true;
+    this.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Vérification...';
+    
+    checkStatus();
+    
+    setTimeout(() => {
+        this.disabled = false;
+        this.innerHTML = '<i class="fas fa-sync-alt mr-2"></i>Vérifier le statut';
+    }, 2000);
+});
+{% endif %}
+
+// Gestion du bouton de réessai
+{% if transaction.status in 'failed,expired,cancelled' %}
+document.getElementById('retry-btn').addEventListener('click', function() {
+    this.disabled = true;
+    this.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Traitement...';
+    
+    fetch('{% url "store:retry_mobile_money_payment" transaction.transaction_id %}')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.href = data.redirect_url;
+            } else {
+                alert('Erreur: ' + data.error);
+                this.disabled = false;
+                this.innerHTML = '<i class="fas fa-redo mr-2"></i>Réessayer';
+            }
+        })
+        .catch(error => {
+            console.error('Erreur:', error);
+            alert('Erreur lors de la relance du paiement');
+            this.disabled = false;
+            this.innerHTML = '<i class="fas fa-redo mr-2"></i>Réessayer';
+        });
+});
+{% endif %}
+</script>
+{% endblock %}

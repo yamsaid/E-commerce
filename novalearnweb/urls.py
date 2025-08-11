@@ -20,8 +20,12 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    # Store app (includes admin dashboard)
     path('', include('store.urls')),
+    path('oauth/', include('social_django.urls', namespace='social')),
+    
+    # Django admin site (must come after store URLs)
+    path('admin/', admin.site.urls),
 ]
 
 # Configuration des médias en développement

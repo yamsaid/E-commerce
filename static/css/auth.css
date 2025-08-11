@@ -1,0 +1,221 @@
+/* Styles personnalisés pour les pages d'authentification */
+
+/* Animations d'entrée */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Application des animations */
+.auth-container {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+.auth-logo {
+    animation: slideInLeft 0.8s ease-out;
+}
+
+.auth-form {
+    animation: slideInRight 0.8s ease-out 0.2s both;
+}
+
+/* Effets de survol améliorés */
+.oauth-button {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.oauth-button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.5s;
+}
+
+.oauth-button:hover::before {
+    left: 100%;
+}
+
+.oauth-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+/* Indicateurs de force du mot de passe */
+.password-strength {
+    transition: all 0.3s ease;
+}
+
+.password-strength.weak {
+    color: #ef4444;
+}
+
+.password-strength.medium {
+    color: #f59e0b;
+}
+
+.password-strength.strong {
+    color: #10b981;
+}
+
+/* Boutons de soumission avec états */
+.submit-button {
+    position: relative;
+    overflow: hidden;
+}
+
+.submit-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.submit-button .loading-spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Messages d'erreur animés */
+.error-message {
+    animation: shake 0.5s ease-in-out;
+    border-left: 4px solid #ef4444;
+    background: #fef2f2;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+/* Champs de saisie avec focus amélioré */
+.input-group {
+    position: relative;
+}
+
+.input-group input:focus + .input-icon {
+    color: #3b82f6;
+    transform: scale(1.1);
+}
+
+.input-icon {
+    transition: all 0.2s ease;
+}
+
+/* Responsive design amélioré */
+@media (max-width: 640px) {
+    .auth-container {
+        padding: 1rem;
+    }
+    
+    .oauth-buttons {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .auth-form {
+        padding: 1.5rem;
+    }
+}
+
+/* Thème sombre (optionnel) */
+@media (prefers-color-scheme: dark) {
+    .auth-container {
+        background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+    }
+    
+    .auth-form {
+        background: #374151;
+        border-color: #4b5563;
+    }
+    
+    .auth-form input {
+        background: #4b5563;
+        border-color: #6b7280;
+        color: #f9fafb;
+    }
+    
+    .auth-form label {
+        color: #d1d5db;
+    }
+}
+
+/* Transitions fluides pour tous les éléments */
+* {
+    transition: all 0.2s ease;
+}
+
+/* Amélioration de l'accessibilité */
+.oauth-button:focus {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+}
+
+.submit-button:focus {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+}
+
+/* États de chargement */
+.loading {
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+.loading .loading-content {
+    display: none;
+}
+
+.loading .loading-spinner {
+    display: inline-block;
+}
+
+/* Messages de succès */
+.success-message {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    color: #166534;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    margin-top: 0.5rem;
+    animation: fadeInUp 0.5s ease-out;
+}

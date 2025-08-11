@@ -1,0 +1,348 @@
+{% extends 'store/base.html' %}
+{% load static %}
+
+{% block title %}Analytics Détaillés - NovaLearn{% endblock %}
+
+{% block extra_css %}
+<style>
+    .chart-container {
+        position: relative;
+        height: 300px;
+    }
+    .metric-card {
+        transition: transform 0.2s;
+    }
+    .metric-card:hover {
+        transform: translateY(-2px);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- En-tête -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-6">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900">Analytics Détaillés</h1>
+                    <p class="text-gray-600">Analyses approfondies des performances</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <!-- Sélecteur de période -->
+                    <div class="flex items-center space-x-2">
+                        <label class="text-sm font-medium text-gray-700">Période:</label>
+                        <select id="periodSelect" class="border border-gray-300 rounded-md px-3 py-1 text-sm">
+                            <option value="week" {% if period == 'week' %}selected{% endif %}>7 jours</option>
+                            <option value="month" {% if period == 'month' %}selected{% endif %}>30 jours</option>
+                            <option value="quarter" {% if period == 'quarter' %}selected{% endif %}>90 jours</option>
+                            <option value="year" {% if period == 'year' %}selected{% endif %}>1 an</option>
+                        </select>
+                    </div>
+                    <a href="{% url 'store:admin_dashboard' %}" class="bg-primary hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                        <i class="fas fa-arrow-left mr-2"></i>Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Métriques principales -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <!-- Revenus totaux -->
+            <div class="bg-white rounded-lg shadow-sm border p-6 metric-card">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-euro-sign text-green-600"></i>
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Revenus</p>
+                        <p class="text-2xl font-bold text-gray-900">
+                            {% for item in monthly_revenue %}
+                                {% if forloop.last %}
+                                    {{ item.revenue|floatformat:0 }} €
+                                {% endif %}
+                            {% endfor %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Commandes -->
+            <div class="bg-white rounded-lg shadow-sm border p-6 metric-card">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-shopping-cart text-blue-600"></i>
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Commandes</p>
+                        <p class="text-2xl font-bold text-gray-900">
+                            {% for item in monthly_revenue %}
+                                {% if forloop.last %}
+                                    {{ item.orders }}
+                                {% endif %}
+                            {% endfor %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Panier moyen -->
+            <div class="bg-white rounded-lg shadow-sm border p-6 metric-card">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-chart-line text-yellow-600"></i>
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Panier Moyen</p>
+                        <p class="text-2xl font-bold text-gray-900">
+                            {% for item in monthly_revenue %}
+                                {% if forloop.last %}
+                                    {% if item.orders > 0 %}
+                                        {% widthratio item.revenue item.orders 1 %} €
+                                    {% else %}
+                                        0 €
+                                    {% endif %}
+                                {% endif %}
+                            {% endfor %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Produits actifs -->
+            <div class="bg-white rounded-lg shadow-sm border p-6 metric-card">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-box text-purple-600"></i>
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Produits Actifs</p>
+                        <p class="text-2xl font-bold text-gray-900">{{ product_performance.count }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Graphiques -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <!-- Évolution des revenus -->
+            <div class="bg-white rounded-lg shadow-sm border p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Évolution des Revenus</h3>
+                <div class="chart-container">
+                    <canvas id="revenueChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Top catégories -->
+            <div class="bg-white rounded-lg shadow-sm border p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Top Catégories</h3>
+                <div class="space-y-3">
+                    {% for category in top_categories %}
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div>
+                            <p class="font-medium text-gray-900">{{ category.product__category__name|default:"Sans catégorie" }}</p>
+                            <p class="text-sm text-gray-500">{{ category.sales }} ventes</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-medium text-gray-900">{{ category.revenue|floatformat:0 }} €</p>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-gray-500 text-center py-4">Aucune donnée disponible</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Performance des produits -->
+        <div class="bg-white rounded-lg shadow-sm border p-6 mb-8">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Performance des Produits</h3>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Produit
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Ventes
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Revenus
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Note Moyenne
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Actions
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for product in product_performance %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    {% if product.image %}
+                                    <img src="{{ product.image.url }}" alt="{{ product.title }}" 
+                                         class="w-10 h-10 object-cover rounded-lg mr-3">
+                                    {% else %}
+                                    <div class="w-10 h-10 bg-gray-200 rounded-lg mr-3 flex items-center justify-center">
+                                        <i class="fas fa-image text-gray-400"></i>
+                                    </div>
+                                    {% endif %}
+                                    <div>
+                                        <div class="text-sm font-medium text-gray-900">{{ product.title }}</div>
+                                        <div class="text-sm text-gray-500">{{ product.category.name|default:"Sans catégorie" }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {{ product.total_sales }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {{ product.total_revenue|floatformat:0 }} €
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                {% if product.avg_rating %}
+                                <div class="flex items-center">
+                                    <span class="text-sm text-gray-900">{{ product.avg_rating|floatformat:1 }}</span>
+                                    <div class="ml-2 flex items-center">
+                                        {% for i in "12345" %}
+                                        <i class="fas fa-star text-yellow-400 text-xs"></i>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                {% else %}
+                                <span class="text-sm text-gray-500">Aucune note</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <a href="{% url 'store:product_detail' product.slug %}" class="text-primary hover:text-blue-700">
+                                    <i class="fas fa-eye mr-1"></i>Voir
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="px-6 py-4 text-center text-gray-500">
+                                Aucun produit avec des ventes dans cette période
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Taux de conversion -->
+        <div class="bg-white rounded-lg shadow-sm border p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Taux de Conversion par Produit</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {% for item in conversion_by_product %}
+                <div class="p-4 bg-gray-50 rounded-lg">
+                    <div class="flex items-center justify-between mb-2">
+                        <h4 class="font-medium text-gray-900">{{ item.product.title|truncatechars:30 }}</h4>
+                        <span class="text-sm font-medium text-primary">{{ item.conversion }}%</span>
+                    </div>
+                    <div class="flex items-center justify-between text-sm text-gray-500">
+                        <span>{{ item.views }} vues</span>
+                        <span>{{ item.sales }} ventes</span>
+                    </div>
+                    <div class="mt-2 w-full bg-gray-200 rounded-full h-2">
+                        <div class="bg-primary h-2 rounded-full" style="width: {{ item.conversion }}%"></div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-span-2 text-center py-8 text-gray-500">
+                    Aucune donnée de conversion disponible
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Graphique des revenus
+const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+const revenueChart = new Chart(revenueCtx, {
+    type: 'bar',
+    data: {
+        labels: [
+            {% for item in monthly_revenue %}
+                '{{ item.month|date:"M Y" }}',
+            {% endfor %}
+        ],
+        datasets: [{
+            label: 'Revenus (€)',
+            data: [
+                {% for item in monthly_revenue %}
+                    {{ item.revenue|floatformat:0 }},
+                {% endfor %}
+            ],
+            backgroundColor: 'rgba(59, 130, 246, 0.8)',
+            borderColor: 'rgb(59, 130, 246)',
+            borderWidth: 1
+        }, {
+            label: 'Commandes',
+            data: [
+                {% for item in monthly_revenue %}
+                    {{ item.orders }},
+                {% endfor %}
+            ],
+            backgroundColor: 'rgba(34, 197, 94, 0.8)',
+            borderColor: 'rgb(34, 197, 94)',
+            borderWidth: 1,
+            yAxisID: 'y1'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                type: 'linear',
+                display: true,
+                position: 'left',
+                title: {
+                    display: true,
+                    text: 'Revenus (€)'
+                }
+            },
+            y1: {
+                type: 'linear',
+                display: true,
+                position: 'right',
+                title: {
+                    display: true,
+                    text: 'Nombre de commandes'
+                },
+                grid: {
+                    drawOnChartArea: false,
+                },
+            }
+        }
+    }
+});
+
+// Sélecteur de période
+document.getElementById('periodSelect').addEventListener('change', function() {
+    const period = this.value;
+    window.location.href = `?period=${period}`;
+});
+</script>
+{% endblock %}

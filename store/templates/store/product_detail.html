@@ -4,32 +4,32 @@
 
 {% block content %}
 <div class="bg-gray-50 min-h-screen">
-    <!-- Breadcrumb -->
-    <div class="bg-white shadow-sm">
+    <!-- Breadcrumb amélioré -->
+    <div class="bg-white shadow-sm border-b">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <nav class="flex" aria-label="Breadcrumb">
                 <ol class="flex items-center space-x-4">
                     <li>
-                        <a href="{% url 'store:home' %}" class="text-gray-400 hover:text-gray-500">
+                        <a href="{% url 'store:home' %}" class="text-gray-400 hover:text-gray-500 transition-colors">
                             <i class="fas fa-home"></i>
                         </a>
                     </li>
                     <li>
                         <div class="flex items-center">
                             <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
-                            <a href="{% url 'store:product_list' %}" class="text-gray-400 hover:text-gray-500">Formations</a>
+                            <a href="{% url 'store:product_list' %}" class="text-gray-400 hover:text-gray-500 transition-colors">Formations</a>
                         </div>
                     </li>
                     <li>
                         <div class="flex items-center">
                             <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
-                            <a href="{% url 'store:category_detail' product.category.slug %}" class="text-gray-400 hover:text-gray-500">{{ product.category.name }}</a>
+                            <a href="{% url 'store:category_detail' product.category.slug %}" class="text-gray-400 hover:text-gray-500 transition-colors">{{ product.category.name }}</a>
                         </div>
                     </li>
                     <li>
                         <div class="flex items-center">
                             <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
-                            <span class="text-gray-900">{{ product.title }}</span>
+                            <span class="text-gray-900 font-medium">{{ product.title|truncatechars:50 }}</span>
                         </div>
                     </li>
                 </ol>
@@ -55,122 +55,239 @@
                         <!-- Badges -->
                         <div class="absolute top-4 left-4 flex flex-col space-y-2">
                             {% if product.is_new %}
-                            <span class="bg-secondary text-white px-3 py-1 rounded-full text-sm font-semibold">
-                                Nouveau
+                            <span class="bg-secondary text-white px-3 py-1 rounded-full text-sm font-semibold shadow-lg">
+                                <i class="fas fa-star mr-1"></i>Nouveau
                             </span>
                             {% endif %}
                             {% if product.is_popular %}
-                            <span class="bg-accent text-white px-3 py-1 rounded-full text-sm font-semibold">
-                                Populaire
+                            <span class="bg-accent text-white px-3 py-1 rounded-full text-sm font-semibold shadow-lg">
+                                <i class="fas fa-fire mr-1"></i>Populaire
                             </span>
                             {% endif %}
                             {% if product.is_featured %}
-                            <span class="bg-primary text-white px-3 py-1 rounded-full text-sm font-semibold">
-                                Mis en avant
+                            <span class="bg-primary text-white px-3 py-1 rounded-full text-sm font-semibold shadow-lg">
+                                <i class="fas fa-star mr-1"></i>Mis en avant
                             </span>
                             {% endif %}
                         </div>
+
+                        <!-- Bouton lecture vidéo si c'est une vidéo -->
+                        {% if product.product_type == 'video' %}
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <button class="bg-white bg-opacity-90 hover:bg-opacity-100 text-primary p-4 rounded-full shadow-lg transition-all duration-300 transform hover:scale-110">
+                                <i class="fas fa-play text-2xl"></i>
+                            </button>
+                        </div>
+                        {% endif %}
                     </div>
 
                     <!-- Informations du produit -->
-                    <div class="p-6">
+                    <div class="p-8">
                         <!-- En-tête -->
-                        <div class="flex items-start justify-between mb-4">
-                            <div>
-                                <div class="flex items-center space-x-2 mb-2">
-                                    <span class="bg-primary text-white px-2 py-1 rounded text-xs font-semibold">
+                        <div class="flex items-start justify-between mb-6">
+                            <div class="flex-1">
+                                <div class="flex items-center space-x-3 mb-4">
+                                    <span class="bg-primary text-white px-3 py-1 rounded-lg text-sm font-semibold">
                                         {{ product.get_product_type_display }}
                                     </span>
-                                    <span class="text-sm text-gray-500">{{ product.category.name }}</span>
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                        <i class="fas fa-tag mr-1"></i>
+                                        {{ product.category.name }}
+                                    </span>
                                     {% if product.is_free %}
-                                    <span class="bg-green-500 text-white px-2 py-1 rounded text-xs font-semibold">
-                                        Gratuit
+                                    <span class="bg-green-500 text-white px-3 py-1 rounded-lg text-sm font-semibold">
+                                        <i class="fas fa-gift mr-1"></i>Gratuit
                                     </span>
                                     {% else %}
-                                    <span class="bg-orange-500 text-white px-2 py-1 rounded text-xs font-semibold">
-                                        Payant
+                                    <span class="bg-orange-500 text-white px-3 py-1 rounded-lg text-sm font-semibold">
+                                        <i class="fas fa-credit-card mr-1"></i>Payant
                                     </span>
                                     {% endif %}
                                 </div>
-                                <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ product.title }}</h1>
-                                <div class="flex items-center space-x-4 text-sm text-gray-500">
+                                <h1 class="text-3xl font-bold text-gray-900 mb-4">{{ product.title }}</h1>
+                                
+                                <!-- Métadonnées -->
+                                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                                     {% if product.duration %}
-                                    <span><i class="fas fa-clock mr-1"></i>{{ product.duration }}</span>
+                                    <div class="flex items-center space-x-2 text-gray-600">
+                                        <i class="fas fa-clock text-primary"></i>
+                                        <span>{{ product.duration }}</span>
+                                    </div>
                                     {% endif %}
                                     {% if product.level %}
-                                    <span><i class="fas fa-signal mr-1"></i>{{ product.level }}</span>
+                                    <div class="flex items-center space-x-2 text-gray-600">
+                                        <i class="fas fa-signal text-primary"></i>
+                                        <span>{{ product.level }}</span>
+                                    </div>
                                     {% endif %}
-                                    <span><i class="fas fa-globe mr-1"></i>{{ product.language }}</span>
-                                    <span><i class="fas fa-eye mr-1"></i>{{ product.views_count }} vues</span>
-                                    <span><i class="fas fa-download mr-1"></i>{{ product.downloads_count }} téléchargements</span>
+                                    <div class="flex items-center space-x-2 text-gray-600">
+                                        <i class="fas fa-download text-primary"></i>
+                                        <span>{{ product.downloads_count|default:"0" }} téléchargements</span>
+                                    </div>
+                                    <div class="flex items-center space-x-2 text-gray-600">
+                                        <i class="fas fa-star text-primary"></i>
+                                        <span>{{ product.rating_count|default:"0" }} avis</span>
+                                    </div>
                                 </div>
+
+                                <!-- Description courte -->
+                                <p class="text-gray-600 text-lg leading-relaxed mb-6">{{ product.short_description }}</p>
                             </div>
                         </div>
 
-                        <!-- Note et avis -->
-                        <div class="flex items-center space-x-4 mb-6">
-                            <div class="flex items-center">
-                                <div class="flex text-yellow-400 mr-2">
-                                    {% for i in "12345" %}
-                                    <i class="fas fa-star text-lg"></i>
-                                    {% endfor %}
-                                </div>
-                                <span class="text-lg font-semibold text-gray-900">{{ product.rating }}</span>
-                                <span class="text-gray-500 ml-1">({{ product.rating_count }} avis)</span>
-                            </div>
-                            <div class="text-gray-500">
-                                <i class="fas fa-users mr-1"></i>{{ product.sales_count }} ventes
-                            </div>
-                        </div>
-
-                        <!-- Description -->
-                        <div class="mb-6">
-                            <h3 class="text-lg font-semibold text-gray-900 mb-3">Description</h3>
-                            <div class="prose max-w-none text-gray-600">
+                        <!-- Description complète -->
+                        {% if product.description %}
+                        <div class="border-t border-gray-200 pt-6 mb-6">
+                            <h3 class="text-xl font-semibold text-gray-900 mb-4">Description</h3>
+                            <div class="prose prose-gray max-w-none">
                                 {{ product.description|linebreaks }}
                             </div>
                         </div>
+                        {% endif %}
 
-                        <!-- Métadonnées -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                            {% if product.file_size %}
-                            <div class="flex items-center space-x-2">
-                                <i class="fas fa-file text-gray-400"></i>
-                                <span class="text-sm text-gray-600">Taille: {{ product.file_size }}</span>
-                            </div>
-                            {% endif %}
-                            <div class="flex items-center space-x-2">
-                                <i class="fas fa-download text-gray-400"></i>
-                                <span class="text-sm text-gray-600">Format: {{ product.get_file_type_display }}</span>
+                        <!-- Caractéristiques -->
+                        {% if product.features %}
+                        <div class="border-t border-gray-200 pt-6 mb-6">
+                            <h3 class="text-xl font-semibold text-gray-900 mb-4">Caractéristiques</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                {% for feature in product.features.all %}
+                                <div class="flex items-center space-x-3">
+                                    <i class="fas fa-check text-green-500"></i>
+                                    <span class="text-gray-700">{{ feature.name }}</span>
+                                </div>
+                                {% endfor %}
                             </div>
                         </div>
+                        {% endif %}
 
-                        <!-- Informations vidéo pour les formations vidéo -->
-                        {% if product.product_type == 'video' or product.product_type == 'formation' %}
-                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                            <h3 class="text-lg font-semibold text-gray-900 mb-3">Contenu de la formation</h3>
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div class="flex items-center space-x-2">
-                                    <i class="fas fa-video text-primary"></i>
-                                    <div>
-                                        <div class="text-sm font-medium text-gray-900">{{ product.get_total_video_count }}</div>
-                                        <div class="text-xs text-gray-500">Séquence{{ product.get_total_video_count|pluralize }}</div>
-                                    </div>
-                                </div>
-                                <div class="flex items-center space-x-2">
-                                    <i class="fas fa-clock text-primary"></i>
-                                    <div>
-                                        <div class="text-sm font-medium text-gray-900">{{ product.get_total_duration_display }}</div>
-                                        <div class="text-xs text-gray-500">Durée totale</div>
-                                    </div>
-                                </div>
-                                <div class="flex items-center space-x-2">
-                                    <i class="fas fa-play text-primary"></i>
-                                    <div>
-                                        <div class="text-sm font-medium text-gray-900">
-                                            {% if product.has_preview_sequence %}Oui{% else %}Non{% endif %}
+                        <!-- Contenu du produit -->
+                        {% if product.content %}
+                        <div class="border-t border-gray-200 pt-6">
+                            <h3 class="text-xl font-semibold text-gray-900 mb-4">Contenu détaillé</h3>
+                            <div class="prose prose-gray max-w-none">
+                                {{ product.content|linebreaks }}
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Informations sur les produits composés -->
+                        {% if product.is_composite_product %}
+                        <div class="border-t border-gray-200 pt-6">
+                            <h3 class="text-xl font-semibold text-gray-900 mb-4">Contenu inclus</h3>
+                            
+                            <!-- Séquences vidéo -->
+                            {% if product.video_sequences.exists %}
+                            <div class="mb-6">
+                                <h4 class="text-lg font-semibold text-gray-800 mb-3">
+                                    <i class="fas fa-video text-primary mr-2"></i>
+                                    Séquences vidéo ({{ product.video_sequences.count }} séquences)
+                                </h4>
+                                <div class="space-y-3">
+                                    {% for sequence in product.video_sequences.all %}
+                                    {% if sequence.is_active %}
+                                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                                        <div class="flex items-center space-x-3">
+                                            <span class="bg-primary text-white text-sm font-semibold px-2 py-1 rounded-full">
+                                                {{ sequence.order }}
+                                            </span>
+                                            <div class="flex-1">
+                                                <h5 class="font-medium text-gray-900">{{ sequence.title }}</h5>
+                                                {% if sequence.description %}
+                                                <p class="text-sm text-gray-600">{{ sequence.description|truncatewords:20 }}</p>
+                                                {% endif %}
+                                            </div>
                                         </div>
-                                        <div class="text-xs text-gray-500">Aperçu disponible</div>
+                                        <div class="flex items-center space-x-3">
+                                            <span class="text-sm text-gray-500">{{ sequence.get_duration_display }}</span>
+                                            {% if sequence.is_preview %}
+                                            <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
+                                                Aperçu
+                                            </span>
+                                            {% endif %}
+                                            <!-- Bouton d'aperçu -->
+                                            {% if sequence.video_file %}
+                                            <button 
+                                                onclick="openVideoPreview('{{ sequence.id }}', '{{ sequence.title }}', '{{ sequence.video_file.url }}')"
+                                                class="bg-primary hover:bg-blue-700 text-white px-3 py-1 rounded-lg text-sm font-medium transition-colors flex items-center space-x-1">
+                                                <i class="fas fa-play text-xs"></i>
+                                                <span>Aperçu</span>
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                    {% endfor %}
+                                </div>
+                                
+                                <!-- Note sur les aperçus -->
+                                <div class="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                                    <div class="flex items-start space-x-2">
+                                        <i class="fas fa-lightbulb text-yellow-500 mt-1"></i>
+                                        <div>
+                                            <p class="text-sm text-yellow-800">
+                                                <strong>Conseil :</strong> Cliquez sur "Aperçu" pour visionner gratuitement certaines séquences avant de télécharger la formation complète.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            <!-- Collection de livres -->
+                            {% if product.collection %}
+                            <div class="mb-6">
+                                <h4 class="text-lg font-semibold text-gray-800 mb-3">
+                                    <i class="fas fa-books text-primary mr-2"></i>
+                                    Collection: {{ product.collection.title }}
+                                </h4>
+                                <p class="text-gray-600 mb-3">{{ product.collection.description|truncatewords:30 }}</p>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    {% for book in product.collection.books.all %}
+                                    {% if book.is_active %}
+                                    <div class="p-3 bg-gray-50 rounded-lg">
+                                        <h5 class="font-medium text-gray-900">{{ book.title }}</h5>
+                                        {% if book.short_description %}
+                                        <p class="text-sm text-gray-600">{{ book.short_description|truncatewords:15 }}</p>
+                                        {% endif %}
+                                    </div>
+                                    {% endif %}
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            <!-- Section développement personnel -->
+                            {% if product.personal_development_section %}
+                            <div class="mb-6">
+                                <h4 class="text-lg font-semibold text-gray-800 mb-3">
+                                    <i class="fas fa-brain text-primary mr-2"></i>
+                                    Section: {{ product.personal_development_section.name }}
+                                </h4>
+                                <p class="text-gray-600 mb-3">{{ product.personal_development_section.description|truncatewords:30 }}</p>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    {% for book in product.personal_development_section.books.all %}
+                                    {% if book.is_active %}
+                                    <div class="p-3 bg-gray-50 rounded-lg">
+                                        <h5 class="font-medium text-gray-900">{{ book.title }}</h5>
+                                        {% if book.short_description %}
+                                        <p class="text-sm text-gray-600">{{ book.short_description|truncatewords:15 }}</p>
+                                        {% endif %}
+                                    </div>
+                                    {% endif %}
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            <!-- Note sur le téléchargement -->
+                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                <div class="flex items-start space-x-3">
+                                    <i class="fas fa-info-circle text-blue-500 mt-1"></i>
+                                    <div>
+                                        <h5 class="font-medium text-blue-900">Téléchargement complet</h5>
+                                        <p class="text-sm text-blue-700">
+                                            Ce produit sera téléchargé sous forme d'archive ZIP contenant tous les fichiers et ressources associés.
+                                        </p>
                                     </div>
                                 </div>
                             </div>
@@ -179,208 +296,687 @@
                     </div>
                 </div>
 
-                <!-- Avis -->
-                {% if reviews %}
-                <div class="bg-white rounded-xl shadow-sm mt-8">
-                    <div class="p-6">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Avis clients</h3>
-                        <div class="space-y-4">
-                            {% for review in reviews %}
-                            <div class="border-b border-gray-200 pb-4 last:border-b-0">
-                                <div class="flex items-center justify-between mb-2">
-                                    <div class="flex items-center space-x-2">
-                                        <div class="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-                                            <span class="text-white text-sm font-medium">{{ review.user.username|first|upper }}</span>
-                                        </div>
-                                        <span class="font-medium text-gray-900">{{ review.user.username }}</span>
-                                        {% if review.is_verified_purchase %}
-                                        <span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">Achat vérifié</span>
-                                        {% endif %}
-                                    </div>
-                                    <div class="flex text-yellow-400">
-                                        {% for i in "12345" %}
-                                        <i class="fas fa-star text-sm"></i>
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                                <h4 class="font-semibold text-gray-900 mb-1">{{ review.title }}</h4>
-                                <p class="text-gray-600 text-sm">{{ review.comment }}</p>
-                                <div class="text-xs text-gray-500 mt-2">{{ review.created_at|date:"d/m/Y" }}</div>
+                <!-- Avis et commentaires -->
+                <div class="bg-white rounded-xl shadow-sm p-8 mt-8">
+                    <h3 class="text-xl font-semibold text-gray-900 mb-6">Avis des utilisateurs</h3>
+                    
+                    <!-- Statistiques des avis -->
+                    <div class="flex items-center space-x-8 mb-8">
+                        <div class="text-center">
+                            <div class="text-3xl font-bold text-gray-900">4.8</div>
+                            <div class="flex text-yellow-400 mb-2">
+                                {% for i in "12345" %}
+                                <i class="fas fa-star"></i>
+                                {% endfor %}
                             </div>
-                            {% endfor %}
+                            <div class="text-sm text-gray-500">Note moyenne</div>
                         </div>
-                    </div>
-                </div>
-                {% endif %}
-
-                <!-- Produits similaires -->
-                {% if similar_products %}
-                <div class="bg-white rounded-xl shadow-sm mt-8">
-                    <div class="p-6">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Formations similaires</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {% for product in similar_products %}
-                            <a href="{% url 'store:product_detail' product.slug %}" class="group">
-                                <div class="flex items-center space-x-4 p-3 rounded-lg hover:bg-gray-50 transition-colors">
-                                    {% if product.cover_image %}
-                                    <img src="{{ product.cover_image.url }}" alt="{{ product.title }}" class="w-16 h-16 object-cover rounded-lg">
-                                    {% else %}
-                                    <div class="w-16 h-16 bg-gradient-to-br from-primary to-blue-600 rounded-lg flex items-center justify-center">
-                                        <i class="fas fa-book text-white"></i>
+                        <div class="flex-1">
+                            <div class="space-y-2">
+                                <div class="flex items-center space-x-3">
+                                    <span class="text-sm text-gray-600 w-12">5★</span>
+                                    <div class="flex-1 bg-gray-200 rounded-full h-2">
+                                        <div class="bg-yellow-400 h-2 rounded-full" style="width: 80%"></div>
                                     </div>
-                                    {% endif %}
-                                    <div class="flex-1">
-                                        <h4 class="font-semibold text-gray-900 group-hover:text-primary transition-colors">{{ product.title }}</h4>
-                                        <p class="text-sm text-gray-500">{{ product.category.name }}</p>
-                                        <div class="text-lg font-bold text-primary">{{ product.price_fcfa }} FCFA</div>
-                                    </div>
+                                    <span class="text-sm text-gray-600 w-12">80%</span>
                                 </div>
-                            </a>
-                            {% endfor %}
+                                <div class="flex items-center space-x-3">
+                                    <span class="text-sm text-gray-600 w-12">4★</span>
+                                    <div class="flex-1 bg-gray-200 rounded-full h-2">
+                                        <div class="bg-yellow-400 h-2 rounded-full" style="width: 15%"></div>
+                                    </div>
+                                    <span class="text-sm text-gray-600 w-12">15%</span>
+                                </div>
+                                <div class="flex items-center space-x-3">
+                                    <span class="text-sm text-gray-600 w-12">3★</span>
+                                    <div class="flex-1 bg-gray-200 rounded-full h-2">
+                                        <div class="bg-yellow-400 h-2 rounded-full" style="width: 3%"></div>
+                                    </div>
+                                    <span class="text-sm text-gray-600 w-12">3%</span>
+                                </div>
+                                <div class="flex items-center space-x-3">
+                                    <span class="text-sm text-gray-600 w-12">2★</span>
+                                    <div class="flex-1 bg-gray-200 rounded-full h-2">
+                                        <div class="bg-yellow-400 h-2 rounded-full" style="width: 1%"></div>
+                                    </div>
+                                    <span class="text-sm text-gray-600 w-12">1%</span>
+                                </div>
+                                <div class="flex items-center space-x-3">
+                                    <span class="text-sm text-gray-600 w-12">1★</span>
+                                    <div class="flex-1 bg-gray-200 rounded-full h-2">
+                                        <div class="bg-yellow-400 h-2 rounded-full" style="width: 1%"></div>
+                                    </div>
+                                    <span class="text-sm text-gray-600 w-12">1%</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
+
+                    <!-- Liste des avis -->
+                    <div class="space-y-6">
+                        <!-- Avis exemple -->
+                        <div class="border-b border-gray-200 pb-6">
+                            <div class="flex items-start space-x-4">
+                                <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-semibold">
+                                    JD
+                                </div>
+                                <div class="flex-1">
+                                    <div class="flex items-center space-x-2 mb-2">
+                                        <div class="flex text-yellow-400">
+                                            {% for i in "12345" %}
+                                            <i class="fas fa-star text-sm"></i>
+                                            {% endfor %}
+                                        </div>
+                                        <span class="text-sm text-gray-500">Il y a 2 jours</span>
+                                    </div>
+                                    <h4 class="font-semibold text-gray-900 mb-1">Excellent contenu !</h4>
+                                    <p class="text-gray-600 text-sm">Formation très complète et bien structurée. Je recommande vivement !</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="border-b border-gray-200 pb-6">
+                            <div class="flex items-start space-x-4">
+                                <div class="w-10 h-10 bg-accent rounded-full flex items-center justify-center text-white font-semibold">
+                                    ML
+                                </div>
+                                <div class="flex-1">
+                                    <div class="flex items-center space-x-2 mb-2">
+                                        <div class="flex text-yellow-400">
+                                            {% for i in "12345" %}
+                                            <i class="fas fa-star text-sm"></i>
+                                            {% endfor %}
+                                        </div>
+                                        <span class="text-sm text-gray-500">Il y a 1 semaine</span>
+                                    </div>
+                                    <h4 class="font-semibold text-gray-900 mb-1">Très satisfait</h4>
+                                    <p class="text-gray-600 text-sm">Le contenu est à jour et les explications sont claires. Parfait pour débuter.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bouton pour voir tous les avis -->
+                    <div class="text-center mt-8">
+                        <a href="{% url 'store:home' %}#reviews" class="text-primary hover:text-blue-700 font-medium">
+                            Voir tous les avis <i class="fas fa-arrow-right ml-1"></i>
+                        </a>
+                    </div>
                 </div>
-                {% endif %}
             </div>
 
-            <!-- Panneau d'achat -->
+            <!-- Sidebar avec prix et actions -->
             <div class="lg:col-span-1">
+                <!-- Carte d'achat -->
                 <div class="bg-white rounded-xl shadow-sm p-6 sticky top-24">
                     <!-- Prix -->
                     <div class="text-center mb-6">
                         {% if product.is_free %}
-                            <div class="text-3xl font-bold text-green-600 mb-1">Gratuit</div>
-                            <div class="text-lg text-gray-500">Téléchargement libre</div>
+                        <div class="text-4xl font-bold text-green-600 mb-2">Gratuit</div>
+                        <div class="text-gray-500">Téléchargement libre</div>
                         {% else %}
-                            <div class="text-3xl font-bold text-primary mb-1">{{ product.price_fcfa }} FCFA</div>
-                            <div class="text-lg text-gray-500">{{ product.price_eur }} EUR</div>
+                        <div class="text-4xl font-bold text-primary mb-2">{{ product.price_fcfa|default:"0" }} FCFA</div>
+                        <div class="text-gray-500">{{ product.price_eur|default:"0" }} EUR</div>
                         {% endif %}
                     </div>
 
-                    <!-- Actions d'achat -->
-                    <div class="space-y-4">
+                    <!-- Actions -->
+                    <div class="space-y-4 mb-6">
                         {% if product.is_free %}
-                            <!-- Actions pour les produits gratuits -->
                             {% if user.is_authenticated %}
-                                <a href="{% url 'store:download_free_product' product.id %}" class="block w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-semibold text-center transition-colors">
+                                <a href="{% url 'store:download_free_product' product.id %}" 
+                                   class="w-full bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors flex items-center justify-center">
                                     <i class="fas fa-download mr-2"></i>
-                                    Télécharger gratuitement
+                                    Télécharger maintenant
                                 </a>
-                                
-                                <!-- Bouton de téléchargement compressé pour les formations avec séquences -->
-                                {% if product.product_type == 'formation' or product.product_type == 'video' %}
-                                    {% if product.video_sequences.exists %}
-                                        <a href="{% url 'store:download_compressed_product' product.id %}" class="block w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold text-center transition-colors">
-                                            <i class="fas fa-file-archive mr-2"></i>
-                                            Télécharger tout le contenu (ZIP)
-                                        </a>
-                                    {% endif %}
-                                {% endif %}
                             {% else %}
-                                <a href="{% url 'store:login' %}" class="block w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-semibold text-center transition-colors">
+                                <a href="{% url 'store:login' %}" 
+                                   class="w-full bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors flex items-center justify-center">
                                     <i class="fas fa-sign-in-alt mr-2"></i>
                                     Se connecter pour télécharger
                                 </a>
                             {% endif %}
                         {% else %}
-                            <!-- Actions pour les produits payants -->
-                            <!-- Boutons d'aperçu pour les formations vidéo -->
-                            {% if product.product_type == 'video' or product.product_type == 'formation' %}
-                                {% if product.has_preview_sequence %}
-                                <a href="{% url 'store:video_preview' product.id %}" class="block w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-semibold text-center transition-colors">
-                                    <i class="fas fa-play mr-2"></i>
-                                    Voir l'aperçu
-                                </a>
-                                {% endif %}
-                                
-                                <!-- Bouton pour accéder aux séquences si l'utilisateur a acheté -->
-                                {% if user.is_authenticated %}
-                                    {% for order in user.orders.all %}
-                                        {% if order.status == 'paid' %}
-                                            {% for item in order.items.all %}
-                                                {% if item.product == product %}
-                                                <a href="{% url 'store:product_video_sequences' product.id %}" class="block w-full bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-lg font-semibold text-center transition-colors">
-                                                    <i class="fas fa-video mr-2"></i>
-                                                    Accéder aux séquences
-                                                </a>
-                                                
-                                                <!-- Bouton de téléchargement compressé pour les formations achetées -->
-                                                {% if product.video_sequences.exists %}
-                                                    <a href="{% url 'store:download_compressed_product' product.id %}" class="block w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold text-center transition-colors">
-                                                        <i class="fas fa-file-archive mr-2"></i>
-                                                        Télécharger tout le contenu (ZIP)
-                                                    </a>
-                                                {% endif %}
-                                                {% endif %}
-                                            {% endfor %}
-                                        {% endif %}
-                                    {% endfor %}
-                                {% endif %}
-                            {% endif %}
-
-                            <form method="POST" action="{% url 'store:add_to_cart' product.id %}" class="space-y-4">
+                            <form method="POST" action="{% url 'store:add_to_cart' product.id %}">
                                 {% csrf_token %}
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Quantité</label>
-                                    <input type="number" name="quantity" value="1" min="1" max="10" 
-                                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary">
-                                </div>
-                                <button type="submit" class="w-full bg-primary hover:bg-blue-700 text-white py-3 rounded-lg font-semibold transition-colors">
+                                <input type="hidden" name="quantity" value="1">
+                                <button type="submit" 
+                                        class="w-full bg-primary hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors flex items-center justify-center">
                                     <i class="fas fa-cart-plus mr-2"></i>
                                     Ajouter au panier
                                 </button>
                             </form>
+                        {% endif %}
 
-                            <a href="{% url 'store:checkout' %}" class="block w-full bg-secondary hover:bg-orange-600 text-white py-3 rounded-lg font-semibold text-center transition-colors">
-                                <i class="fas fa-shopping-cart mr-2"></i>
-                                Acheter maintenant
-                            </a>
+                        <!-- Bouton d'achat immédiat -->
+                        {% if not product.is_free %}
+                        <a href="{% url 'store:checkout' %}" 
+                           class="w-full bg-accent hover:bg-green-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors flex items-center justify-center">
+                            <i class="fas fa-credit-card mr-2"></i>
+                            Acheter maintenant
+                        </a>
                         {% endif %}
                     </div>
 
                     <!-- Informations supplémentaires -->
-                    <div class="mt-6 pt-6 border-t border-gray-200">
-                        <div class="space-y-3">
-                            <div class="flex items-center space-x-3">
-                                <i class="fas fa-download text-green-500"></i>
-                                <span class="text-sm text-gray-600">Téléchargement immédiat</span>
-                            </div>
-                            <div class="flex items-center space-x-3">
-                                <i class="fas fa-shield-alt text-blue-500"></i>
-                                <span class="text-sm text-gray-600">Garantie 30 jours</span>
-                            </div>
-                            <div class="flex items-center space-x-3">
-                                <i class="fas fa-headset text-purple-500"></i>
-                                <span class="text-sm text-gray-600">Support 24/7</span>
-                            </div>
-                            <div class="flex items-center space-x-3">
-                                <i class="fas fa-mobile-alt text-orange-500"></i>
-                                <span class="text-sm text-gray-600">Compatible mobile</span>
+                    <div class="border-t border-gray-200 pt-6 space-y-4">
+                        <div class="flex items-center justify-between text-sm">
+                            <span class="text-gray-600">Type</span>
+                            <span class="font-medium">{{ product.get_product_type_display }}</span>
+                        </div>
+                        <div class="flex items-center justify-between text-sm">
+                            <span class="text-gray-600">Catégorie</span>
+                            <span class="font-medium">{{ product.category.name }}</span>
+                        </div>
+                        {% if product.duration %}
+                        <div class="flex items-center justify-between text-sm">
+                            <span class="text-gray-600">Durée</span>
+                            <span class="font-medium">{{ product.duration }}</span>
+                        </div>
+                        {% endif %}
+                        {% if product.level %}
+                        <div class="flex items-center justify-between text-sm">
+                            <span class="text-gray-600">Niveau</span>
+                            <span class="font-medium">{{ product.level }}</span>
+                        </div>
+                        {% endif %}
+                        <div class="flex items-center justify-between text-sm">
+                            <span class="text-gray-600">Téléchargements</span>
+                            <span class="font-medium">{{ product.downloads_count|default:"0" }}</span>
+                        </div>
+                        <div class="flex items-center justify-between text-sm">
+                            <span class="text-gray-600">Note</span>
+                            <div class="flex items-center">
+                                <div class="flex text-yellow-400 mr-2">
+                                    {% for i in "12345" %}
+                                    <i class="fas fa-star text-xs"></i>
+                                    {% endfor %}
+                                </div>
+                                <span class="font-medium">4.8</span>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Partage social -->
-                    <div class="mt-6 pt-6 border-t border-gray-200">
-                        <h4 class="text-sm font-medium text-gray-700 mb-3">Partager</h4>
-                        <div class="flex space-x-2">
-                            <a href="#" class="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center hover:bg-blue-700 transition-colors">
-                                <i class="fab fa-facebook-f text-sm"></i>
-                            </a>
-                            <a href="#" class="w-8 h-8 bg-blue-400 text-white rounded-full flex items-center justify-center hover:bg-blue-500 transition-colors">
-                                <i class="fab fa-twitter text-sm"></i>
-                            </a>
-                            <a href="#" class="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center hover:bg-green-700 transition-colors">
-                                <i class="fab fa-whatsapp text-sm"></i>
-                            </a>
-                            <a href="#" class="w-8 h-8 bg-gray-600 text-white rounded-full flex items-center justify-center hover:bg-gray-700 transition-colors">
-                                <i class="fas fa-link text-sm"></i>
-                            </a>
+                    <!-- Garanties -->
+                    <div class="border-t border-gray-200 pt-6">
+                        <h4 class="font-semibold text-gray-900 mb-4">Garanties</h4>
+                        <div class="space-y-3">
+                            <div class="flex items-center space-x-3">
+                                <i class="fas fa-shield-alt text-green-500"></i>
+                                <span class="text-sm text-gray-600">Accès illimité</span>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <i class="fas fa-mobile-alt text-green-500"></i>
+                                <span class="text-sm text-gray-600">Compatible mobile</span>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <i class="fas fa-headset text-green-500"></i>
+                                <span class="text-sm text-gray-600">Support inclus</span>
+                            </div>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Produits similaires -->
+                <div class="bg-white rounded-xl shadow-sm p-6 mt-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Produits similaires</h3>
+                    <div class="space-y-4">
+                        <!-- Produit similaire exemple -->
+                        <div class="flex space-x-3">
+                            <div class="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-book text-gray-400"></i>
+                            </div>
+                            <div class="flex-1">
+                                <h4 class="font-medium text-gray-900 text-sm">Formation Marketing Digital</h4>
+                                <p class="text-green-600 font-semibold text-sm">Gratuit</p>
+                            </div>
+                        </div>
+                        <div class="flex space-x-3">
+                            <div class="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-book text-gray-400"></i>
+                            </div>
+                            <div class="flex-1">
+                                <h4 class="font-medium text-gray-900 text-sm">E-book Productivité</h4>
+                                <p class="text-green-600 font-semibold text-sm">Gratuit</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-center mt-4">
+                        <a href="{% url 'store:product_list' %}" class="text-primary hover:text-blue-700 text-sm font-medium">
+                            Voir plus <i class="fas fa-arrow-right ml-1"></i>
+                        </a>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Modale d'aperçu vidéo -->
+<div id="videoModal" class="fixed inset-0 bg-black bg-opacity-75 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl max-w-5xl w-full max-h-[95vh] overflow-hidden shadow-2xl">
+        <!-- En-tête de la modale -->
+        <div class="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-primary to-blue-600 text-white">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                    <i class="fas fa-play text-white"></i>
+                </div>
+                <div>
+                    <h3 id="videoTitle" class="text-xl font-bold"></h3>
+                    <p id="videoDescription" class="text-sm text-blue-100 opacity-90"></p>
+                </div>
+            </div>
+            <button onclick="closeVideoPreview()" class="text-white hover:text-blue-200 transition-colors p-2 rounded-full hover:bg-white hover:bg-opacity-20">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        
+        <!-- Contenu principal -->
+        <div class="flex flex-col lg:flex-row">
+            <!-- Zone vidéo -->
+            <div class="flex-1">
+                <div class="relative bg-black">
+                    <div id="videoPlayer" class="w-full">
+                        <!-- Le contenu vidéo sera injecté ici -->
+                    </div>
+                    
+                    <!-- Overlay de chargement -->
+                    <div id="videoLoading" class="absolute inset-0 bg-black bg-opacity-75 flex items-center justify-center">
+                        <div class="text-center text-white">
+                            <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto mb-4"></div>
+                            <p class="text-lg font-medium">Chargement de la vidéo...</p>
+                            <p class="text-sm text-gray-300 mt-2">Veuillez patienter</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Panneau d'informations -->
+            <div class="w-full lg:w-80 bg-gray-50 border-l border-gray-200">
+                <!-- Informations sur la séquence -->
+                <div class="p-6">
+                    <div class="mb-6">
+                        <h4 class="text-lg font-semibold text-gray-900 mb-3">
+                            <i class="fas fa-info-circle text-primary mr-2"></i>
+                            Informations
+                        </h4>
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-gray-600">Durée</span>
+                                <span id="videoDuration" class="text-sm font-medium text-gray-900">--</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-gray-600">Niveau</span>
+                                <span id="videoLevel" class="text-sm font-medium text-gray-900">--</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-gray-600">Type</span>
+                                <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-medium">
+                                    Aperçu gratuit
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Progression de la formation -->
+                    <div class="mb-6">
+                        <h4 class="text-lg font-semibold text-gray-900 mb-3">
+                            <i class="fas fa-list-ol text-primary mr-2"></i>
+                            Progression
+                        </h4>
+                        <div class="bg-white rounded-lg p-4 border border-gray-200">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-sm text-gray-600">Séquence actuelle</span>
+                                <span id="currentSequence" class="text-sm font-medium text-primary">--</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div id="progressBar" class="bg-primary h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-2">
+                                Cette séquence fait partie d'une formation complète
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <!-- Actions -->
+                    <div class="space-y-3">
+                        <button id="downloadFullCourse" class="w-full bg-primary hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2">
+                            <i class="fas fa-download"></i>
+                            <span>Télécharger la formation complète</span>
+                        </button>
+                        
+                        <button id="viewAllSequences" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 px-4 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2">
+                            <i class="fas fa-list"></i>
+                            <span>Voir toutes les séquences</span>
+                        </button>
+                        
+                        <div class="text-center">
+                            <button onclick="closeVideoPreview()" class="text-gray-500 hover:text-gray-700 text-sm font-medium transition-colors">
+                                <i class="fas fa-times mr-1"></i>
+                                Fermer l'aperçu
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Pied de la modale avec informations supplémentaires -->
+        <div class="p-4 border-t border-gray-200 bg-white">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-2 text-sm text-gray-600">
+                        <i class="fas fa-eye text-primary"></i>
+                        <span id="viewCount">Aperçu gratuit</span>
+                    </div>
+                    <div class="flex items-center space-x-2 text-sm text-gray-600">
+                        <i class="fas fa-clock text-primary"></i>
+                        <span id="timeRemaining">--</span>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button id="fullscreenBtn" class="text-gray-500 hover:text-gray-700 p-2 rounded-full hover:bg-gray-100 transition-colors">
+                        <i class="fas fa-expand"></i>
+                    </button>
+                    <button id="qualityBtn" class="text-gray-500 hover:text-gray-700 p-2 rounded-full hover:bg-gray-100 transition-colors">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript pour les aperçus vidéo -->
+<script>
+function openVideoPreview(sequenceId, title, videoUrl) {
+    // Récupérer tous les éléments DOM
+    const modal = document.getElementById('videoModal');
+    const videoPlayer = document.getElementById('videoPlayer');
+    const videoLoading = document.getElementById('videoLoading');
+    const videoTitle = document.getElementById('videoTitle');
+    const videoDescription = document.getElementById('videoDescription');
+    const videoDuration = document.getElementById('videoDuration');
+    const videoLevel = document.getElementById('videoLevel');
+    const currentSequence = document.getElementById('currentSequence');
+    const progressBar = document.getElementById('progressBar');
+    const downloadFullCourse = document.getElementById('downloadFullCourse');
+    const viewAllSequences = document.getElementById('viewAllSequences');
+    const viewCount = document.getElementById('viewCount');
+    const timeRemaining = document.getElementById('timeRemaining');
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
+    const qualityBtn = document.getElementById('qualityBtn');
+
+    // Mettre à jour le titre et réinitialiser les informations
+    videoTitle.textContent = title;
+    videoDescription.textContent = `Séquence ${sequenceId}`;
+    videoDuration.textContent = '--';
+    videoLevel.textContent = '--';
+    currentSequence.textContent = '--';
+    progressBar.style.width = '0%';
+    viewCount.textContent = 'Aperçu gratuit';
+    timeRemaining.textContent = '--';
+
+    // Afficher la modale
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    
+    // Afficher l'overlay de chargement
+    videoPlayer.innerHTML = '';
+    videoLoading.classList.remove('hidden');
+
+    // Vérifier la disponibilité de la vidéo via l'API
+    fetch(`/api/sequence/${sequenceId}/preview/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Masquer l'overlay de chargement
+                videoLoading.classList.add('hidden');
+                
+                // Mettre à jour les informations de la séquence
+                videoDuration.textContent = data.sequence.duration || '--';
+                videoLevel.textContent = data.sequence.level || 'Tous niveaux';
+                currentSequence.textContent = `Séquence ${data.sequence.order}`;
+                progressBar.style.width = '0%';
+
+                // Créer le lecteur vidéo
+                videoPlayer.innerHTML = `
+                    <video id="videoPlayerContent" class="w-full h-auto" controls preload="metadata">
+                        <source src="${data.sequence.video_url}" type="video/mp4">
+                        Votre navigateur ne supporte pas la lecture de vidéos.
+                    </video>
+                `;
+                
+                const newVideoPlayer = videoPlayer.querySelector('video');
+                if (newVideoPlayer) {
+                    // Démarrer la lecture automatiquement
+                    newVideoPlayer.play().catch(function(error) {
+                        console.log("Lecture automatique non autorisée:", error);
+                    });
+
+                    // Ajouter les gestionnaires d'événements
+                    newVideoPlayer.addEventListener('timeupdate', updateProgress);
+                    newVideoPlayer.addEventListener('loadedmetadata', updateDuration);
+                    newVideoPlayer.addEventListener('ended', handleVideoEnd);
+                    newVideoPlayer.addEventListener('loadeddata', () => {
+                        updateDuration();
+                        updateTimeRemaining();
+                    });
+
+                    // Gestionnaire pour le bouton plein écran
+                    fullscreenBtn.addEventListener('click', toggleFullscreen);
+                    
+                    // Gestionnaire pour le bouton qualité
+                    qualityBtn.addEventListener('click', toggleQualityMenu);
+                }
+
+                // Configurer les boutons d'action
+                setupActionButtons(sequenceId, data.sequence);
+
+            } else {
+                showVideoError("Erreur lors du chargement de la vidéo");
+            }
+        })
+        .catch(error => {
+            console.error('Erreur API:', error);
+            showVideoError("Impossible de charger la vidéo. Veuillez réessayer.");
+        });
+}
+
+function setupActionButtons(sequenceId, sequenceData) {
+    const downloadFullCourse = document.getElementById('downloadFullCourse');
+    const viewAllSequences = document.getElementById('viewAllSequences');
+    
+    // Configurer le bouton de téléchargement
+    downloadFullCourse.onclick = function() {
+        // Rediriger vers la page de téléchargement du produit
+        window.open(`/download-free/${sequenceData.product_id}/`, '_blank');
+    };
+    
+    // Configurer le bouton pour voir toutes les séquences
+    viewAllSequences.onclick = function() {
+        // Rediriger vers la page du produit
+        window.open(`/product/${sequenceData.product_slug}/`, '_blank');
+    };
+}
+
+function updateProgress() {
+    const videoPlayer = document.getElementById('videoPlayerContent');
+    const progressBar = document.getElementById('progressBar');
+    
+    if (videoPlayer && progressBar && !isNaN(videoPlayer.duration) && videoPlayer.duration > 0) {
+        const progress = (videoPlayer.currentTime / videoPlayer.duration) * 100;
+        progressBar.style.width = `${progress}%`;
+    }
+}
+
+function updateDuration() {
+    const videoPlayer = document.getElementById('videoPlayerContent');
+    const videoDuration = document.getElementById('videoDuration');
+    
+    if (videoPlayer && videoDuration && !isNaN(videoPlayer.duration)) {
+        videoDuration.textContent = formatTime(videoPlayer.duration);
+    }
+}
+
+function updateTimeRemaining() {
+    const videoPlayer = document.getElementById('videoPlayerContent');
+    const timeRemaining = document.getElementById('timeRemaining');
+    
+    if (videoPlayer && timeRemaining && !isNaN(videoPlayer.duration)) {
+        const remaining = videoPlayer.duration - videoPlayer.currentTime;
+        timeRemaining.textContent = `Reste: ${formatTime(remaining)}`;
+    }
+}
+
+function formatTime(seconds) {
+    if (isNaN(seconds) || seconds <= 0) return '--';
+    
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = Math.floor(seconds % 60);
+    
+    if (h > 0) {
+        return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    } else {
+        return `${m}:${s.toString().padStart(2, '0')}`;
+    }
+}
+
+function handleVideoEnd() {
+    const currentSequence = document.getElementById('currentSequence');
+    const progressBar = document.getElementById('progressBar');
+    
+    if (currentSequence) {
+        currentSequence.textContent = 'Séquence terminée';
+    }
+    if (progressBar) {
+        progressBar.style.width = '100%';
+    }
+}
+
+function toggleFullscreen() {
+    const videoPlayer = document.getElementById('videoPlayerContent');
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
+    
+    if (videoPlayer) {
+        if (!document.fullscreenElement) {
+            videoPlayer.requestFullscreen().catch(err => {
+                console.log('Erreur plein écran:', err);
+            });
+        } else {
+            document.exitFullscreen();
+        }
+    }
+}
+
+function toggleQualityMenu() {
+    const qualityBtn = document.getElementById('qualityBtn');
+    
+    // Pour l'instant, afficher un message d'information
+    // Dans une version future, cela pourrait ouvrir un menu de qualité
+    alert('La qualité vidéo est optimisée automatiquement selon votre connexion.');
+}
+
+function showVideoError(message) {
+    const videoPlayer = document.getElementById('videoPlayer');
+    const videoLoading = document.getElementById('videoLoading');
+    
+    // Masquer l'overlay de chargement
+    videoLoading.classList.add('hidden');
+    
+    // Afficher le message d'erreur
+    videoPlayer.innerHTML = `
+        <div class="flex items-center justify-center h-64 bg-gray-100">
+            <div class="text-center">
+                <i class="fas fa-exclamation-triangle text-4xl text-red-500 mb-4"></i>
+                <p class="text-lg font-medium text-red-600 mb-4">${message}</p>
+                <button onclick="closeVideoPreview()" class="bg-primary hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+                    Fermer
+                </button>
+            </div>
+        </div>
+    `;
+    
+    // Réinitialiser les informations
+    resetVideoInfo();
+}
+
+function resetVideoInfo() {
+    const elements = [
+        'videoDescription', 'videoDuration', 'videoLevel', 'currentSequence',
+        'viewCount', 'timeRemaining'
+    ];
+    
+    elements.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            if (id === 'viewCount') {
+                element.textContent = 'Aperçu gratuit';
+            } else {
+                element.textContent = '--';
+            }
+        }
+    });
+    
+    const progressBar = document.getElementById('progressBar');
+    if (progressBar) {
+        progressBar.style.width = '0%';
+    }
+}
+
+function closeVideoPreview() {
+    // Arrêter la vidéo
+    const videoPlayer = document.getElementById('videoPlayerContent');
+    if (videoPlayer) {
+        videoPlayer.pause();
+        videoPlayer.currentTime = 0;
+    }
+    
+    // Masquer la modale
+    document.getElementById('videoModal').classList.add('hidden');
+    document.body.style.overflow = 'auto';
+    
+    // Réinitialiser les informations
+    resetVideoInfo();
+}
+
+// Gestionnaires d'événements globaux
+document.addEventListener('DOMContentLoaded', function() {
+    // Fermer la modale en cliquant à l'extérieur
+    const modal = document.getElementById('videoModal');
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeVideoPreview();
+            }
+        });
+    }
+    
+    // Fermer la modale avec la touche Échap
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeVideoPreview();
+        }
+    });
+    
+    // Gestionnaire pour les changements de plein écran
+    document.addEventListener('fullscreenchange', updateFullscreenIcon);
+    document.addEventListener('webkitfullscreenchange', updateFullscreenIcon);
+    document.addEventListener('mozfullscreenchange', updateFullscreenIcon);
+    document.addEventListener('msfullscreenchange', updateFullscreenIcon);
+});
+
+function updateFullscreenIcon() {
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
+    if (fullscreenBtn) {
+        if (document.fullscreenElement) {
+            fullscreenBtn.innerHTML = '<i class="fas fa-compress"></i>';
+        } else {
+            fullscreenBtn.innerHTML = '<i class="fas fa-expand"></i>';
+        }
+    }
+}
+</script>
+
 {% endblock %} 

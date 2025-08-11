@@ -11,9 +11,12 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import os
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / '.env')
 
 
 # Quick-start development settings - unsuitable for production
@@ -25,7 +28,10 @@ SECRET_KEY = 'django-insecure-u69$&60dj4%2+i*w+p5ut99hg2q0*1tkn+-#xuj(@izs1pn_6y
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+]
 
 
 # Application definition
@@ -38,6 +44,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'store',
+    'social_django',
 ]
 
 MIDDLEWARE = [
@@ -48,6 +55,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'social_django.middleware.SocialAuthExceptionMiddleware',
 ]
 
 ROOT_URLCONF = 'novalearnweb.urls'
@@ -62,6 +70,8 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'social_django.context_processors.backends',
+                'social_django.context_processors.login_redirect',
             ],
         },
     },
@@ -129,3 +139,76 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Authentication backends
+AUTHENTICATION_BACKENDS = (
+    'social_core.backends.google.GoogleOAuth2',
+    'social_core.backends.facebook.FacebookOAuth2',
+    'django.contrib.auth.backends.ModelBackend',
+)
+
+# Login/Logout redirects
+LOGIN_URL = 'store:login'
+LOGIN_REDIRECT_URL = 'store:home'
+LOGOUT_REDIRECT_URL = 'store:home'
+
+# Social Auth settings (use environment variables in production)
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = os.getenv('GOOGLE_OAUTH2_CLIENT_ID', 'YOUR_GOOGLE_CLIENT_ID')
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = os.getenv('GOOGLE_OAUTH2_CLIENT_SECRET', 'YOUR_GOOGLE_CLIENT_SECRET')
+SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE = ['email', 'profile']
+
+SOCIAL_AUTH_FACEBOOK_KEY = os.getenv('FACEBOOK_APP_ID', 'YOUR_FACEBOOK_APP_ID')
+SOCIAL_AUTH_FACEBOOK_SECRET = os.getenv('FACEBOOK_APP_SECRET', 'YOUR_FACEBOOK_APP_SECRET')
+SOCIAL_AUTH_FACEBOOK_SCOPE = ['email']
+SOCIAL_AUTH_FACEBOOK_PROFILE_EXTRA_PARAMS = {
+    'fields': 'id, name, email, first_name, last_name'
+}
+
+# Redirections en cas d'erreur OAuth
+SOCIAL_AUTH_LOGIN_ERROR_URL = '/login/'
+SOCIAL_AUTH_RAISE_EXCEPTIONS = False
+
+# Configuration Mobile Money
+SITE_URL = os.getenv('SITE_URL', 'http://localhost:8000')
+
+# Configuration Mobile Money - Orange Money
+MOBILE_MONEY_BASE_URL = os.getenv('MOBILE_MONEY_BASE_URL', 'https://api.mobilemoney.com')
+MOBILE_MONEY_API_KEY = os.getenv('MOBILE_MONEY_API_KEY', '')
+MOBILE_MONEY_MERCHANT_ID = os.getenv('MOBILE_MONEY_MERCHANT_ID', '')
+MOBILE_MONEY_SECRET_KEY = os.getenv('MOBILE_MONEY_SECRET_KEY', '')
+
+# Configuration spécifique par opérateur (si nécessaire)
+ORANGE_MONEY_API_KEY = os.getenv('ORANGE_MONEY_API_KEY', '')
+MTN_MONEY_API_KEY = os.getenv('MTN_MONEY_API_KEY', '')
+MOOV_MONEY_API_KEY = os.getenv('MOOV_MONEY_API_KEY', '')
+WAVE_API_KEY = os.getenv('WAVE_API_KEY', '')
+
+# Timeout pour les API de paiement (en secondes)
+PAYMENT_API_TIMEOUT = 30
+
+# Logging pour les paiements
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR / 'logs' / 'payments.log',
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'store.services': {
+            'handlers': ['file'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+    },
+}
