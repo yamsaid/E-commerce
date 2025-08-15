@@ -1,10 +1,9 @@
 """
-Production settings for novalearnweb project.
+Development settings for novalearnweb project.
 """
 
 from pathlib import Path
 import os
-import dj_database_url
 from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -12,17 +11,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / '.env')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('SECRET_KEY')
-if not SECRET_KEY:
-    print("WARNING: SECRET_KEY not set, using fallback")
-    SECRET_KEY = 'django-insecure-fallback-key-for-production'
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-development-key')
 
-# Configure allowed hosts
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '.onrender.com').split(',')
-print(f"ALLOWED_HOSTS: {ALLOWED_HOSTS}")
+# Configure allowed hosts for development
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0']
 
 # Application definition
 INSTALLED_APPS = [
@@ -69,61 +64,13 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'novalearnweb.wsgi.application'
 
-# Database configuration for Render
-DATABASE_URL = os.getenv('DATABASE_URL')
-print(f"DATABASE_URL present: {bool(DATABASE_URL)}")
-
-if DATABASE_URL:
-    try:
-        # Try to use psycopg (newer PostgreSQL adapter)
-        import psycopg
-        DATABASES = {
-            'default': dj_database_url.parse(DATABASE_URL)
-        }
-        # Use psycopg engine
-        if DATABASES['default']['ENGINE'] == 'django.db.backends.postgresql':
-            DATABASES['default']['ENGINE'] = 'django.db.backends.postgresql'
-        print("Using PostgreSQL with psycopg")
-        print(f"Database host: {DATABASES['default'].get('HOST', 'N/A')}")
-    except ImportError as e:
-        print(f"psycopg not available: {e}")
-        try:
-            # Fallback to psycopg2
-            import psycopg2
-            DATABASES = {
-                'default': dj_database_url.parse(DATABASE_URL)
-            }
-            # Use psycopg2 engine
-            if DATABASES['default']['ENGINE'] == 'django.db.backends.postgresql':
-                DATABASES['default']['ENGINE'] = 'django.db.backends.postgresql_psycopg2'
-            print("Using PostgreSQL with psycopg2")
-            print(f"Database host: {DATABASES['default'].get('HOST', 'N/A')}")
-        except ImportError as e:
-            print(f"psycopg2 not available: {e}")
-            print("Falling back to SQLite")
-            DATABASES = {
-                'default': {
-                    'ENGINE': 'django.db.backends.sqlite3',
-                    'NAME': BASE_DIR / 'db.sqlite3',
-                }
-            }
-    except Exception as e:
-        print(f"Error parsing DATABASE_URL: {e}")
-        print("Falling back to SQLite")
-        DATABASES = {
-            'default': {
-                'ENGINE': 'django.db.backends.sqlite3',
-                'NAME': BASE_DIR / 'db.sqlite3',
-            }
-        }
-else:
-    print("No DATABASE_URL found, using SQLite")
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
+# Database - Force SQLite for development
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
+}
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -147,12 +94,14 @@ TIME_ZONE = 'Africa/Abidjan'
 USE_I18N = True
 USE_TZ = True
 
-# Static files configuration
+# Static files (CSS, JavaScript, Images)
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [
     BASE_DIR / 'static',
 ]
+
+# Configuration WhiteNoise pour les fichiers statiques
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Media files
@@ -191,53 +140,36 @@ SOCIAL_AUTH_LOGIN_ERROR_URL = '/login/'
 SOCIAL_AUTH_RAISE_EXCEPTIONS = False
 
 # Configuration générale
-SITE_URL = os.getenv('SITE_URL', 'https://your-app.onrender.com')
+SITE_URL = os.getenv('SITE_URL', 'http://localhost:8000')
 
 # Timeout pour les API de paiement (en secondes)
 PAYMENT_API_TIMEOUT = 30
 
-# Security settings for production
-SECURE_SSL_REDIRECT = True
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
-SECURE_BROWSER_XSS_FILTER = True
-SECURE_CONTENT_TYPE_NOSNIFF = True
-SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-SECURE_HSTS_SECONDS = 31536000
-X_FRAME_OPTIONS = 'DENY'
+# Disable HTTPS redirects in development
+SECURE_SSL_REDIRECT = False
+SECURE_PROXY_SSL_HEADER = None
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
 
-# Logging configuration for production
+# Disable other security headers in development
+SECURE_BROWSER_XSS_FILTER = False
+SECURE_CONTENT_TYPE_NOSNIFF = False
+SECURE_HSTS_INCLUDE_SUBDOMAINS = False
+SECURE_HSTS_SECONDS = 0
+X_FRAME_OPTIONS = 'SAMEORIGIN'
+
+# Simplified logging for development
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
-    'formatters': {
-        'verbose': {
-            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
-            'style': '{',
-        },
-    },
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
-            'formatter': 'verbose',
         },
     },
     'root': {
         'handlers': ['console'],
         'level': 'INFO',
-    },
-    'loggers': {
-        'django': {
-            'handlers': ['console'],
-            'level': 'INFO',
-            'propagate': False,
-        },
-        'store.services': {
-            'handlers': ['console'],
-            'level': 'INFO',
-            'propagate': True,
-        },
     },
 }
 
@@ -245,9 +177,7 @@ LOGGING = {
 CINETPAY_API_URL = os.getenv('CINETPAY_API_URL', 'https://api-checkout.cinetpay.com/v2/payment')
 CINETPAY_SITE_ID = os.getenv('CINETPAY_SITE_ID', '')
 CINETPAY_API_KEY = os.getenv('CINETPAY_API_KEY', '')
-CINETPAY_ENVIRONMENT = os.getenv('CINETPAY_ENVIRONMENT', 'PROD')
+CINETPAY_ENVIRONMENT = os.getenv('CINETPAY_ENVIRONMENT', 'TEST')
 CINETPAY_SECRET_KEY = os.getenv('CINETPAY_SECRET_KEY', '')
 
-print("Using production settings")
-print(f"SECRET_KEY length: {len(SECRET_KEY)}")
-print(f"Database engine: {DATABASES['default']['ENGINE']}")
+print("Using development settings with SQLite")
