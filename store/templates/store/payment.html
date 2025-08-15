@@ -3,7 +3,6 @@
 {% block title %}Paiement - NovaLearn{% endblock %}
 
 {% block extra_css %}
-<script src="https://js.stripe.com/v3/"></script>
 {% endblock %}
 
 {% block content %}
@@ -18,92 +17,47 @@
             <!-- Options de paiement -->
             <div>
                 <div class="bg-white rounded-xl shadow-sm p-6">
-                    <h2 class="text-xl font-semibold text-gray-900 mb-6">Choisissez votre méthode de paiement</h2>
+                                         <h2 class="text-xl font-semibold text-gray-900 mb-6">Paiement sécurisé via CinetPay</h2>
                     
-                    <!-- Carte bancaire -->
-                    <div class="mb-6">
-                        <div class="border border-gray-200 rounded-lg p-4">
-                            <div class="flex items-center mb-4">
-                                <input type="radio" id="payment_stripe" name="payment_method" value="stripe" checked
-                                       class="h-4 w-4 text-primary focus:ring-primary border-gray-300">
-                                <label for="payment_stripe" class="ml-3 flex items-center">
-                                    <i class="fas fa-credit-card text-gray-400 mr-2"></i>
-                                    <span class="font-medium">Carte bancaire</span>
-                                </label>
-                            </div>
+                                         <!-- CinetPay -->
+                     <div class="mb-6">
+                         <div class="border border-gray-200 rounded-lg p-4">
+                             <div class="flex items-center mb-4">
+                                 <i class="fas fa-credit-card text-green-500 mr-2"></i>
+                                 <span class="font-medium">CinetPay (Carte bancaire & Mobile Money)</span>
+                             </div>
                             
-                            <div id="stripe-form" class="space-y-4">
+                            <div id="cinetpay-form" class="space-y-4">
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Numéro de carte</label>
-                                    <div id="card-number" class="w-full px-3 py-2 border border-gray-300 rounded-lg"></div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Nom complet</label>
+                                    <input type="text" id="cinetpay-name" value="{{ user.get_full_name|default:user.username }}" 
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary">
                                 </div>
                                 
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-2">Date d'expiration</label>
-                                        <div id="card-expiry" class="w-full px-3 py-2 border border-gray-300 rounded-lg"></div>
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-2">CVC</label>
-                                        <div id="card-cvc" class="w-full px-3 py-2 border border-gray-300 rounded-lg"></div>
-                                    </div>
-                                </div>
-                                
-                                <div id="card-errors" class="text-red-600 text-sm hidden"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Mobile Money -->
-                    <div class="mb-6">
-                        <div class="border border-gray-200 rounded-lg p-4">
-                            <div class="flex items-center mb-4">
-                                <input type="radio" id="payment_mobile" name="payment_method" value="mobile_money"
-                                       class="h-4 w-4 text-primary focus:ring-primary border-gray-300">
-                                <label for="payment_mobile" class="ml-3 flex items-center">
-                                    <i class="fas fa-mobile-alt text-gray-400 mr-2"></i>
-                                    <span class="font-medium">Mobile Money</span>
-                                </label>
-                            </div>
-                            
-                            <div id="mobile-form" class="space-y-4 hidden">
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Opérateur</label>
-                                    <select id="mobile-operator" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary">
-                                        <option value="">Sélectionnez un opérateur</option>
-                                        <option value="orange">Orange Money</option>
-                                        <option value="mtn">MTN Money</option>
-                                        <option value="moov">Moov Money</option>
-                                        <option value="wave">Wave</option>
-                                    </select>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                                    <input type="email" id="cinetpay-email" value="{{ user.email }}" 
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary">
                                 </div>
                                 
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">Numéro de téléphone</label>
-                                    <input type="tel" id="mobile-phone" placeholder="+225 01234567" 
+                                    <input type="tel" id="cinetpay-phone" placeholder="+225 01234567" 
                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary">
                                     <p class="text-xs text-gray-500 mt-1">Format: +225 01234567 ou 01234567</p>
                                 </div>
                                 
-                                <div id="mobile-errors" class="text-red-600 text-sm hidden"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- PayPal -->
-                    <div class="mb-6">
-                        <div class="border border-gray-200 rounded-lg p-4">
-                            <div class="flex items-center mb-4">
-                                <input type="radio" id="payment_paypal" name="payment_method" value="paypal"
-                                       class="h-4 w-4 text-primary focus:ring-primary border-gray-300">
-                                <label for="payment_paypal" class="ml-3 flex items-center">
-                                    <i class="fab fa-paypal text-gray-400 mr-2"></i>
-                                    <span class="font-medium">PayPal</span>
-                                </label>
-                            </div>
-                            
-                            <div id="paypal-form" class="hidden">
-                                <p class="text-sm text-gray-600">Vous serez redirigé vers PayPal pour finaliser votre paiement.</p>
+                                <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                                    <div class="flex items-start">
+                                        <i class="fas fa-info-circle text-blue-500 mt-1 mr-2"></i>
+                                        <div class="text-sm text-blue-700">
+                                            <p class="font-medium">Paiement sécurisé via CinetPay</p>
+                                            <p class="mt-1">Vous serez redirigé vers la plateforme CinetPay pour choisir votre méthode de paiement (carte bancaire, Mobile Money, etc.)</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div id="cinetpay-errors" class="text-red-600 text-sm hidden"></div>
                             </div>
                         </div>
                     </div>
@@ -193,158 +147,81 @@
 </div>
 
 <script>
-// Configuration Stripe (à remplacer par vos vraies clés)
-const stripe = Stripe('pk_test_your_stripe_public_key');
-const elements = stripe.elements();
-
-// Créer les éléments de carte
-const cardNumber = elements.create('cardNumber');
-const cardExpiry = elements.create('cardExpiry');
-const cardCvc = elements.create('cardCvc');
-
-// Monter les éléments
-cardNumber.mount('#card-number');
-cardExpiry.mount('#card-expiry');
-cardCvc.mount('#card-cvc');
-
-// Gestion des erreurs
-const displayError = document.getElementById('card-errors');
-cardNumber.addEventListener('change', ({error}) => {
-    if (error) {
-        displayError.textContent = error.message;
-        displayError.classList.remove('hidden');
-    } else {
-        displayError.classList.add('hidden');
-    }
-});
-
-// Gestion des méthodes de paiement
-document.querySelectorAll('input[name="payment_method"]').forEach(radio => {
-    radio.addEventListener('change', function() {
-        // Masquer tous les formulaires
-        document.getElementById('stripe-form').classList.add('hidden');
-        document.getElementById('mobile-form').classList.add('hidden');
-        document.getElementById('paypal-form').classList.add('hidden');
-        
-        // Afficher le formulaire correspondant
-        if (this.value === 'stripe') {
-            document.getElementById('stripe-form').classList.remove('hidden');
-        } else if (this.value === 'mobile_money') {
-            document.getElementById('mobile-form').classList.remove('hidden');
-        } else if (this.value === 'paypal') {
-            document.getElementById('paypal-form').classList.remove('hidden');
-        }
-    });
-});
-
-// Gestion du paiement
+// Gestion du paiement CinetPay
 document.getElementById('pay-button').addEventListener('click', async function(e) {
     e.preventDefault();
     
-    const selectedMethod = document.querySelector('input[name="payment_method"]:checked').value;
+    // Paiement CinetPay (seule méthode disponible)
+    const customerName = document.getElementById('cinetpay-name').value;
+    const customerEmail = document.getElementById('cinetpay-email').value;
+    const customerPhone = document.getElementById('cinetpay-phone').value;
+    const cinetpayErrors = document.getElementById('cinetpay-errors');
     
-    if (selectedMethod === 'stripe') {
-        // Paiement Stripe
-        const {error, paymentMethod} = await stripe.createPaymentMethod({
-            type: 'card',
-            card: cardNumber,
-        });
-        
-        if (error) {
-            displayError.textContent = error.message;
-            displayError.classList.remove('hidden');
+    // Validation
+    if (!customerName.trim()) {
+        cinetpayErrors.textContent = 'Veuillez saisir votre nom complet';
+        cinetpayErrors.classList.remove('hidden');
+        return;
+    }
+    
+    if (!customerEmail.trim()) {
+        cinetpayErrors.textContent = 'Veuillez saisir votre email';
+        cinetpayErrors.classList.remove('hidden');
+        return;
+    }
+    
+    if (!customerPhone.trim()) {
+        cinetpayErrors.textContent = 'Veuillez saisir votre numéro de téléphone';
+        cinetpayErrors.classList.remove('hidden');
+        return;
+    }
+    
+    // Masquer les erreurs
+    cinetpayErrors.classList.add('hidden');
+    
+    // Désactiver le bouton
+    const payButton = document.getElementById('pay-button');
+    payButton.disabled = true;
+    payButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Redirection vers CinetPay...';
+    
+    // Envoyer la demande de paiement
+    fetch('{% url "store:payment" order.order_number %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+            payment_type: 'cinetpay',
+            customer_name: customerName,
+            customer_email: customerEmail,
+            customer_phone: customerPhone
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Rediriger vers CinetPay
+            window.location.href = data.payment_url;
         } else {
-            // Envoyer le paymentMethod.id au serveur
-            fetch('{% url "store:payment" order.order_number %}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                },
-                body: JSON.stringify({
-                    payment_method_id: paymentMethod.id,
-                    payment_type: 'stripe'
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    window.location.href = data.redirect_url;
-                } else {
-                    displayError.textContent = data.error;
-                    displayError.classList.remove('hidden');
-                }
-            });
-        }
-    } else if (selectedMethod === 'mobile_money') {
-        // Paiement Mobile Money
-        const operator = document.getElementById('mobile-operator').value;
-        const phoneNumber = document.getElementById('mobile-phone').value;
-        const mobileErrors = document.getElementById('mobile-errors');
-        
-        // Validation
-        if (!operator) {
-            mobileErrors.textContent = 'Veuillez sélectionner un opérateur';
-            mobileErrors.classList.remove('hidden');
-            return;
-        }
-        
-        if (!phoneNumber) {
-            mobileErrors.textContent = 'Veuillez saisir votre numéro de téléphone';
-            mobileErrors.classList.remove('hidden');
-            return;
-        }
-        
-        // Masquer les erreurs
-        mobileErrors.classList.add('hidden');
-        
-        // Désactiver le bouton
-        const payButton = document.getElementById('pay-button');
-        payButton.disabled = true;
-        payButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Traitement...';
-        
-        // Envoyer la demande de paiement
-        fetch('{% url "store:payment" order.order_number %}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-            },
-            body: JSON.stringify({
-                payment_type: 'mobile_money',
-                operator: operator,
-                phone_number: phoneNumber
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Rediriger vers la page de statut
-                window.location.href = data.redirect_url;
-            } else {
-                // Afficher l'erreur
-                mobileErrors.textContent = data.error;
-                mobileErrors.classList.remove('hidden');
-                
-                // Réactiver le bouton
-                payButton.disabled = false;
-                payButton.innerHTML = '<i class="fas fa-lock mr-2"></i>Payer {{ order.total_fcfa }} FCFA';
-            }
-        })
-        .catch(error => {
-            console.error('Erreur:', error);
-            mobileErrors.textContent = 'Erreur de connexion. Veuillez réessayer.';
-            mobileErrors.classList.remove('hidden');
+            // Afficher l'erreur
+            cinetpayErrors.textContent = data.error;
+            cinetpayErrors.classList.remove('hidden');
             
             // Réactiver le bouton
             payButton.disabled = false;
             payButton.innerHTML = '<i class="fas fa-lock mr-2"></i>Payer {{ order.total_fcfa }} FCFA';
-        });
-    } else if (selectedMethod === 'paypal') {
-        // Paiement PayPal
-        // Redirection vers PayPal
-        window.location.href = '{% url "store:payment" order.order_number %}?method=paypal';
-    }
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        cinetpayErrors.textContent = 'Erreur de connexion. Veuillez réessayer.';
+        cinetpayErrors.classList.remove('hidden');
+        
+        // Réactiver le bouton
+        payButton.disabled = false;
+        payButton.innerHTML = '<i class="fas fa-lock mr-2"></i>Payer {{ order.total_fcfa }} FCFA';
+    });
 });
 </script>
 {% endblock %} 

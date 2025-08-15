@@ -1,0 +1,11 @@
+Nova = nouveauté, étoile / Learn = formation
+
+Nom : NovaLearn 
+
+Slogan : Apprenez. Innovez. Transformez
+
+Descriptions : NovaLearn est une entreprise numérique innovante dédiée à la formation, aux données et au conseil stratégique.
+Nous accompagnons les particuliers, les institutions et les entreprises à travers des formations personnalisées, des solutions
+basées sur la donnée, et une expertise en transformation digitale
+
+

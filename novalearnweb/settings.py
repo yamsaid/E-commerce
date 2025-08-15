@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path
 import os
 from dotenv import load_dotenv
+import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -23,15 +24,12 @@ load_dotenv(BASE_DIR / '.env')
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-u69$&60dj4%2+i*w+p5ut99hg2q0*1tkn+-#xuj(@izs1pn_6y'
+SECRET_KEY = os.getenv('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
 
-ALLOWED_HOSTS = [
-    'localhost',
-    '127.0.0.1',
-]
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
 
 # Application definition
@@ -49,6 +47,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Ajouté pour servir les fichiers statiques
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -83,12 +82,28 @@ WSGI_APPLICATION = 'novalearnweb.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+# Configuration de base de données pour production
+DATABASE_URL = os.getenv('DATABASE_URL')
+if DATABASE_URL and DATABASE_URL.strip():
+    try:
+        DATABASES = {
+            'default': dj_database_url.parse(DATABASE_URL)
+        }
+    except Exception:
+        # Fallback to SQLite if DATABASE_URL parsing fails
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.sqlite3',
+                'NAME': BASE_DIR / 'db.sqlite3',
+            }
+        }
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
     }
-}
 
 
 # Password validation
@@ -131,6 +146,9 @@ STATICFILES_DIRS = [
     BASE_DIR / 'static',
 ]
 
+# Configuration WhiteNoise pour les fichiers statiques
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
 # Media files
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
@@ -168,20 +186,8 @@ SOCIAL_AUTH_FACEBOOK_PROFILE_EXTRA_PARAMS = {
 SOCIAL_AUTH_LOGIN_ERROR_URL = '/login/'
 SOCIAL_AUTH_RAISE_EXCEPTIONS = False
 
-# Configuration Mobile Money
+# Configuration générale
 SITE_URL = os.getenv('SITE_URL', 'http://localhost:8000')
-
-# Configuration Mobile Money - Orange Money
-MOBILE_MONEY_BASE_URL = os.getenv('MOBILE_MONEY_BASE_URL', 'https://api.mobilemoney.com')
-MOBILE_MONEY_API_KEY = os.getenv('MOBILE_MONEY_API_KEY', '')
-MOBILE_MONEY_MERCHANT_ID = os.getenv('MOBILE_MONEY_MERCHANT_ID', '')
-MOBILE_MONEY_SECRET_KEY = os.getenv('MOBILE_MONEY_SECRET_KEY', '')
-
-# Configuration spécifique par opérateur (si nécessaire)
-ORANGE_MONEY_API_KEY = os.getenv('ORANGE_MONEY_API_KEY', '')
-MTN_MONEY_API_KEY = os.getenv('MTN_MONEY_API_KEY', '')
-MOOV_MONEY_API_KEY = os.getenv('MOOV_MONEY_API_KEY', '')
-WAVE_API_KEY = os.getenv('WAVE_API_KEY', '')
 
 # Timeout pour les API de paiement (en secondes)
 PAYMENT_API_TIMEOUT = 30
@@ -212,3 +218,21 @@ LOGGING = {
         },
     },
 }
+
+# Configuration CinetPay
+CINETPAY_API_URL = os.getenv('CINETPAY_API_URL', 'https://api-checkout.cinetpay.com/v2/payment')
+CINETPAY_SITE_ID = os.getenv('CINETPAY_SITE_ID', '')
+CINETPAY_API_KEY = os.getenv('CINETPAY_API_KEY', '')
+CINETPAY_ENVIRONMENT = os.getenv('CINETPAY_ENVIRONMENT', 'TEST')  # TEST ou PROD
+CINETPAY_SECRET_KEY = os.getenv('CINETPAY_SECRET_KEY', '')  # Pour la vérification des webhooks
+
+# Paramètres de sécurité pour la production
+if not DEBUG:
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    X_FRAME_OPTIONS = 'DENY'

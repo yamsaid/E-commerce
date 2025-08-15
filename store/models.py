@@ -282,8 +282,9 @@ class Payment(models.Model):
     PAYMENT_METHODS = [
         ('stripe', 'Stripe'),
         ('paypal', 'PayPal'),
-        ('mobile_money', 'Mobile Money'),
+
         ('wave', 'Wave'),
+        ('cinetpay', 'CinetPay'),
     ]
     
     STATUS_CHOICES = [
@@ -550,41 +551,40 @@ class Contact(models.Model):
         return f"{self.name} - {self.subject}"
 
 
-class MobileMoneyTransaction(models.Model):
-    """Transaction Mobile Money"""
-    OPERATORS = [
-        ('orange', 'Orange Money'),
-        ('mtn', 'MTN Money'),
-        ('moov', 'Moov Money'),
-        ('wave', 'Wave'),
-    ]
-    
+
+
+
+class CinetPayTransaction(models.Model):
+    """Transaction CinetPay"""
     STATUS_CHOICES = [
-        ('pending', 'En attente'),
-        ('initiated', 'Initiated'),
-        ('processing', 'En traitement'),
-        ('success', 'Succès'),
-        ('failed', 'Échoué'),
-        ('cancelled', 'Annulé'),
-        ('expired', 'Expiré'),
+        ('INITIATED', 'Initiated'),
+        ('PENDING', 'En attente'),
+        ('SUCCESS', 'Succès'),
+        ('FAILED', 'Échoué'),
+        ('CANCELLED', 'Annulé'),
+        ('EXPIRED', 'Expiré'),
     ]
     
     # Informations de base
     transaction_id = models.CharField(max_length=100, unique=True, verbose_name="ID de transaction")
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='mobile_money_transactions', verbose_name="Commande")
-    payment = models.ForeignKey(Payment, on_delete=models.CASCADE, related_name='mobile_money_transactions', verbose_name="Paiement")
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='cinetpay_transactions', verbose_name="Commande")
+    payment = models.ForeignKey(Payment, on_delete=models.CASCADE, related_name='cinetpay_transactions', verbose_name="Paiement")
     
-    # Informations Mobile Money
-    operator = models.CharField(max_length=20, choices=OPERATORS, verbose_name="Opérateur")
-    phone_number = models.CharField(max_length=20, verbose_name="Numéro de téléphone")
+    # Informations CinetPay
+    cinetpay_transaction_id = models.CharField(max_length=100, blank=True, verbose_name="ID transaction CinetPay")
+    payment_token = models.CharField(max_length=255, blank=True, verbose_name="Token de paiement")
     
     # Montants
     amount_fcfa = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Montant (FCFA)")
     amount_eur = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Montant (EUR)")
     
+    # Informations client
+    customer_name = models.CharField(max_length=200, verbose_name="Nom du client")
+    customer_email = models.EmailField(verbose_name="Email du client")
+    customer_phone = models.CharField(max_length=20, verbose_name="Téléphone du client")
+    
     # Statut et métadonnées
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', verbose_name="Statut")
-    gateway_transaction_id = models.CharField(max_length=100, blank=True, verbose_name="ID transaction passerelle")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='INITIATED', verbose_name="Statut")
     gateway_response = models.JSONField(blank=True, null=True, verbose_name="Réponse de la passerelle")
     
     # Informations de suivi
@@ -597,34 +597,33 @@ class MobileMoneyTransaction(models.Model):
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Modifié le")
     
     class Meta:
-        verbose_name = "Transaction Mobile Money"
-        verbose_name_plural = "Transactions Mobile Money"
+        verbose_name = "Transaction CinetPay"
+        verbose_name_plural = "Transactions CinetPay"
         ordering = ['-created_at']
     
     def __str__(self):
-        return f"{self.operator} - {self.phone_number} - {self.amount_fcfa} FCFA"
+        return f"CinetPay - {self.customer_name} - {self.amount_fcfa} FCFA"
     
     def save(self, *args, **kwargs):
         if not self.transaction_id:
-            self.transaction_id = f"MM_{uuid.uuid4().hex[:16].upper()}"
+            self.transaction_id = f"CP_{uuid.uuid4().hex[:16].upper()}"
         if not self.expires_at:
-            self.expires_at = timezone.now() + timedelta(minutes=15)
+            self.expires_at = timezone.now() + timedelta(minutes=30)
         super().save(*args, **kwargs)
     
     def is_expired(self):
         return timezone.now() > self.expires_at
     
     def can_retry(self):
-        return self.status in ['failed', 'expired', 'cancelled']
+        return self.status in ['FAILED', 'EXPIRED', 'CANCELLED']
     
     def get_status_display_color(self):
         status_colors = {
-            'pending': 'text-yellow-600',
-            'initiated': 'text-blue-600',
-            'processing': 'text-blue-600',
-            'success': 'text-green-600',
-            'failed': 'text-red-600',
-            'cancelled': 'text-gray-600',
-            'expired': 'text-orange-600',
+            'INITIATED': 'text-blue-600',
+            'PENDING': 'text-yellow-600',
+            'SUCCESS': 'text-green-600',
+            'FAILED': 'text-red-600',
+            'CANCELLED': 'text-gray-600',
+            'EXPIRED': 'text-orange-600',
         }
         return status_colors.get(self.status, 'text-gray-600')

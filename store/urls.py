@@ -36,11 +36,15 @@ urlpatterns = [
     path('payment/<str:order_number>/', views.payment, name='payment'),
     path('payment-success/<str:order_number>/', views.payment_success, name='payment_success'),
     path('payment-cancel/<str:order_number>/', views.payment_cancel, name='payment_cancel'),
-    path('payment-status/<str:transaction_id>/', views.payment_status, name='payment_status'),
+
     
-    # API Mobile Money
-    path('api/check-payment-status/<str:transaction_id>/', views.check_payment_status_api, name='check_payment_status_api'),
-    path('api/retry-mobile-money/<str:transaction_id>/', views.retry_mobile_money_payment, name='retry_mobile_money_payment'),
+
+    
+    # API CinetPay
+    path('cinetpay-payment-status/<str:transaction_id>/', views.cinetpay_payment_status, name='cinetpay_payment_status'),
+    path('api/check-cinetpay-status/<str:transaction_id>/', views.check_cinetpay_status_api, name='check_cinetpay_status_api'),
+    path('api/retry-cinetpay/<str:transaction_id>/', views.retry_cinetpay_payment, name='retry_cinetpay_payment'),
+    path('api/cinetpay/webhook/', views.cinetpay_webhook, name='cinetpay_webhook'),
     
     # Téléchargements
     path('download/<str:token>/', views.download_file, name='download_file'),

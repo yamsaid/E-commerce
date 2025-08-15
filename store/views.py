@@ -385,6 +385,7 @@ def checkout(request):
         request.session['cart'] = {}
         request.session.modified = True
         
+        # Rediriger directement vers la page de paiement CinetPay
         return redirect('store:payment', order_number=order.order_number)
     
     context = {
@@ -413,56 +414,54 @@ def payment(request, order_number):
     tax_fcfa = order.subtotal_fcfa * Decimal('0.18')
     tax_eur = order.subtotal_eur * Decimal('0.18')
     
-    # Traitement des paiements Mobile Money
+    # Traitement du paiement CinetPay
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
             payment_type = data.get('payment_type')
             
-            if payment_type == 'mobile_money':
-                from .services import MobileMoneyService
+            if payment_type == 'cinetpay':
+                from .services import CinetPayService
                 
-                operator = data.get('operator')
-                phone_number = data.get('phone_number')
+                # Récupérer les informations client
+                customer_name = data.get('customer_name', request.user.get_full_name() or request.user.username)
+                customer_email = data.get('customer_email', request.user.email)
+                customer_phone = data.get('customer_phone', '')
                 
-                if not operator or not phone_number:
+                if not customer_phone:
                     return JsonResponse({
                         'success': False,
-                        'error': 'Opérateur et numéro de téléphone requis'
+                        'error': 'Numéro de téléphone requis'
                     })
                 
                 # Valider le numéro de téléphone
-                if not phone_number.startswith('+225') and not phone_number.startswith('225'):
-                    phone_number = '+225' + phone_number.lstrip('0')
+                if not customer_phone.startswith('+225') and not customer_phone.startswith('225'):
+                    customer_phone = '+225' + customer_phone.lstrip('0')
                 
-                # Initier le paiement Mobile Money
-                mobile_money_service = MobileMoneyService()
-                result = mobile_money_service.initiate_payment(
+                # Initier le paiement CinetPay
+                cinetpay_service = CinetPayService()
+                result = cinetpay_service.initiate_payment(
                     order=order,
-                    operator=operator,
-                    phone_number=phone_number,
-                    amount_fcfa=order.total_fcfa
+                    customer_data={
+                        'name': customer_name,
+                        'email': customer_email,
+                        'phone': customer_phone
+                    }
                 )
                 
                 if result['success']:
                     return JsonResponse({
                         'success': True,
                         'transaction_id': result['transaction_id'],
+                        'payment_url': result['payment_url'],
                         'message': result['message'],
-                        'redirect_url': f'/payment-status/{result["transaction_id"]}/'
+                        'redirect_url': result['payment_url']
                     })
                 else:
                     return JsonResponse({
                         'success': False,
                         'error': result['error']
                     })
-            
-            elif payment_type == 'stripe':
-                # Logique Stripe existante (à implémenter)
-                return JsonResponse({
-                    'success': False,
-                    'error': 'Paiement Stripe en cours de développement'
-                })
             
             else:
                 return JsonResponse({
@@ -525,104 +524,10 @@ def payment_cancel(request, order_number):
     return redirect('store:order_detail', order_number=order_number)
 
 
-@login_required
-def payment_status(request, transaction_id):
-    """Page de statut du paiement Mobile Money"""
-    try:
-        from .models import MobileMoneyTransaction
-        from .services import MobileMoneyService
-        
-        transaction = MobileMoneyTransaction.objects.get(
-            transaction_id=transaction_id,
-            order__user=request.user
-        )
-        
-        # Vérifier le statut actuel
-        mobile_money_service = MobileMoneyService()
-        status_result = mobile_money_service.check_payment_status(transaction_id)
-        
-        context = {
-            'transaction': transaction,
-            'status_result': status_result,
-            'order': transaction.order
-        }
-        
-        return render(request, 'store/payment_status.html', context)
-        
-    except MobileMoneyTransaction.DoesNotExist:
-        messages.error(request, 'Transaction non trouvée.')
-        return redirect('store:my_orders')
 
 
-@login_required
-def check_payment_status_api(request, transaction_id):
-    """API pour vérifier le statut d'un paiement"""
-    try:
-        from .models import MobileMoneyTransaction
-        from .services import MobileMoneyService
-        
-        transaction = MobileMoneyTransaction.objects.get(
-            transaction_id=transaction_id,
-            order__user=request.user
-        )
-        
-        mobile_money_service = MobileMoneyService()
-        status_result = mobile_money_service.check_payment_status(transaction_id)
-        
-        return JsonResponse(status_result)
-        
-    except MobileMoneyTransaction.DoesNotExist:
-        return JsonResponse({
-            'success': False,
-            'error': 'Transaction non trouvée'
-        })
 
 
-@login_required
-def retry_mobile_money_payment(request, transaction_id):
-    """Réessayer un paiement Mobile Money échoué"""
-    try:
-        from .models import MobileMoneyTransaction
-        from .services import MobileMoneyService
-        
-        transaction = MobileMoneyTransaction.objects.get(
-            transaction_id=transaction_id,
-            order__user=request.user
-        )
-        
-        if not transaction.can_retry():
-            return JsonResponse({
-                'success': False,
-                'error': 'Cette transaction ne peut pas être relancée'
-            })
-        
-        # Créer une nouvelle transaction
-        mobile_money_service = MobileMoneyService()
-        result = mobile_money_service.initiate_payment(
-            order=transaction.order,
-            operator=transaction.operator,
-            phone_number=transaction.phone_number,
-            amount_fcfa=transaction.amount_fcfa
-        )
-        
-        if result['success']:
-            return JsonResponse({
-                'success': True,
-                'transaction_id': result['transaction_id'],
-                'message': result['message'],
-                'redirect_url': f'/payment-status/{result["transaction_id"]}/'
-            })
-        else:
-            return JsonResponse({
-                'success': False,
-                'error': result['error']
-            })
-            
-    except MobileMoneyTransaction.DoesNotExist:
-        return JsonResponse({
-            'success': False,
-            'error': 'Transaction non trouvée'
-        })
 
 
 @login_required
@@ -1624,3 +1529,135 @@ def admin_analytics(request):
     }
     
     return render(request, 'store/admin/analytics.html', context)
+
+
+# Vues CinetPay
+@login_required
+def cinetpay_payment_status(request, transaction_id):
+    """Page de statut du paiement CinetPay"""
+    try:
+        from .models import CinetPayTransaction
+        from .services import CinetPayService
+        
+        transaction = CinetPayTransaction.objects.get(
+            transaction_id=transaction_id,
+            order__user=request.user
+        )
+        
+        # Vérifier le statut actuel
+        cinetpay_service = CinetPayService()
+        status_result = cinetpay_service.check_payment_status(transaction_id)
+        
+        context = {
+            'transaction': transaction,
+            'status_result': status_result,
+            'order': transaction.order
+        }
+        
+        return render(request, 'store/cinetpay_payment_status.html', context)
+        
+    except CinetPayTransaction.DoesNotExist:
+        messages.error(request, 'Transaction non trouvée.')
+        return redirect('store:my_orders')
+
+
+@login_required
+def check_cinetpay_status_api(request, transaction_id):
+    """API pour vérifier le statut d'un paiement CinetPay"""
+    try:
+        from .models import CinetPayTransaction
+        from .services import CinetPayService
+        
+        transaction = CinetPayTransaction.objects.get(
+            transaction_id=transaction_id,
+            order__user=request.user
+        )
+        
+        cinetpay_service = CinetPayService()
+        status_result = cinetpay_service.check_payment_status(transaction_id)
+        
+        return JsonResponse(status_result)
+        
+    except CinetPayTransaction.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Transaction non trouvée'
+        })
+
+
+@login_required
+def retry_cinetpay_payment(request, transaction_id):
+    """Réessayer un paiement CinetPay échoué"""
+    try:
+        from .models import CinetPayTransaction
+        from .services import CinetPayService
+        
+        transaction = CinetPayTransaction.objects.get(
+            transaction_id=transaction_id,
+            order__user=request.user
+        )
+        
+        if not transaction.can_retry():
+            return JsonResponse({
+                'success': False,
+                'error': 'Cette transaction ne peut pas être relancée'
+            })
+        
+        # Créer une nouvelle transaction CinetPay
+        cinetpay_service = CinetPayService()
+        result = cinetpay_service.initiate_payment(
+            order=transaction.order,
+            customer_data={
+                'name': transaction.customer_name,
+                'email': transaction.customer_email,
+                'phone': transaction.customer_phone
+            }
+        )
+        
+        if result['success']:
+            return JsonResponse({
+                'success': True,
+                'transaction_id': result['transaction_id'],
+                'payment_url': result['payment_url'],
+                'message': 'Nouveau paiement initié avec succès',
+                'redirect_url': result['payment_url']
+            })
+        else:
+            return JsonResponse({
+                'success': False,
+                'error': result['error']
+            })
+            
+    except CinetPayTransaction.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Transaction non trouvée'
+        })
+
+
+def cinetpay_webhook(request):
+    """Webhook CinetPay pour les notifications de paiement"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Méthode non autorisée'}, status=405)
+    
+    try:
+        from .services import CinetPayService
+        
+        # Récupérer les données du webhook
+        webhook_data = json.loads(request.body)
+        
+        # Traiter le webhook
+        cinetpay_service = CinetPayService()
+        result = cinetpay_service.process_webhook(webhook_data)
+        
+        if result['success']:
+            return JsonResponse({'status': 'success'}, status=200)
+        else:
+            logger.error(f"Erreur webhook CinetPay: {result['error']}")
+            return JsonResponse({'status': 'error', 'message': result['error']}, status=400)
+            
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Données JSON invalides'}, status=400)
+    except Exception as e:
+        logger.error(f"Erreur webhook CinetPay: {str(e)}")
+        return JsonResponse({'error': 'Erreur interne'}, status=500)

@@ -1,0 +1,255 @@
+{% extends 'store/base.html' %}
+
+{% block title %}Statut du paiement - NovaLearn{% endblock %}
+
+{% block content %}
+<div class="bg-gray-50 min-h-screen">
+    <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900">Statut du paiement</h1>
+            <p class="mt-2 text-gray-600">Transaction #{{ transaction.transaction_id }}</p>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm p-6">
+            <!-- Informations de la commande -->
+            <div class="mb-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">Détails de la commande</h2>
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <span class="text-gray-600">Numéro de commande:</span>
+                        <p class="font-medium">{{ order.order_number }}</p>
+                    </div>
+                    <div>
+                        <span class="text-gray-600">Montant:</span>
+                        <p class="font-medium">{{ transaction.amount_fcfa }} FCFA</p>
+                    </div>
+                    <div>
+                        <span class="text-gray-600">Client:</span>
+                        <p class="font-medium">{{ transaction.customer_name }}</p>
+                    </div>
+                    <div>
+                        <span class="text-gray-600">Email:</span>
+                        <p class="font-medium">{{ transaction.customer_email }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statut du paiement -->
+            <div class="mb-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">Statut du paiement</h2>
+                
+                <div id="payment-status" class="text-center py-8">
+                    <!-- Statut INITIATED -->
+                    <div id="status-initiated" class="{% if transaction.status != 'INITIATED' %}hidden{% endif %}">
+                        <div class="mb-4">
+                            <i class="fas fa-clock text-blue-500 text-4xl"></i>
+                        </div>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2">Paiement initié</h3>
+                        <p class="text-gray-600 mb-4">Votre paiement a été initié avec succès. Veuillez patienter pendant que nous vérifions le statut.</p>
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+                    </div>
+
+                    <!-- Statut PENDING -->
+                    <div id="status-pending" class="{% if transaction.status != 'PENDING' %}hidden{% endif %}">
+                        <div class="mb-4">
+                            <i class="fas fa-hourglass-half text-yellow-500 text-4xl"></i>
+                        </div>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2">Paiement en cours</h3>
+                        <p class="text-gray-600 mb-4">Votre paiement est en cours de traitement. Veuillez patienter.</p>
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500 mx-auto"></div>
+                    </div>
+
+                    <!-- Statut SUCCESS -->
+                    <div id="status-success" class="{% if transaction.status != 'SUCCESS' %}hidden{% endif %}">
+                        <div class="mb-4">
+                            <i class="fas fa-check-circle text-green-500 text-4xl"></i>
+                        </div>
+                        <h3 class="text-xl font-semibold text-green-600 mb-2">Paiement confirmé !</h3>
+                        <p class="text-gray-600 mb-4">Votre paiement a été traité avec succès. Vous pouvez maintenant télécharger vos produits.</p>
+                        <a href="{% url 'store:order_detail' order.order_number %}" 
+                           class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors">
+                            <i class="fas fa-download mr-2"></i>
+                            Voir ma commande
+                        </a>
+                    </div>
+
+                    <!-- Statut FAILED -->
+                    <div id="status-failed" class="{% if transaction.status != 'FAILED' %}hidden{% endif %}">
+                        <div class="mb-4">
+                            <i class="fas fa-times-circle text-red-500 text-4xl"></i>
+                        </div>
+                        <h3 class="text-xl font-semibold text-red-600 mb-2">Paiement échoué</h3>
+                        <p class="text-gray-600 mb-4">Le paiement n'a pas pu être traité. Veuillez réessayer ou contacter le support.</p>
+                        <div class="space-y-2">
+                            <button id="retry-button" 
+                                    class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors">
+                                <i class="fas fa-redo mr-2"></i>
+                                Réessayer le paiement
+                            </button>
+                            <br>
+                            <a href="{% url 'store:payment' order.order_number %}" 
+                               class="inline-flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors">
+                                <i class="fas fa-arrow-left mr-2"></i>
+                                Retour au paiement
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Statut CANCELLED -->
+                    <div id="status-cancelled" class="{% if transaction.status != 'CANCELLED' %}hidden{% endif %}">
+                        <div class="mb-4">
+                            <i class="fas fa-ban text-orange-500 text-4xl"></i>
+                        </div>
+                        <h3 class="text-xl font-semibold text-orange-600 mb-2">Paiement annulé</h3>
+                        <p class="text-gray-600 mb-4">Le paiement a été annulé. Vous pouvez réessayer ou choisir une autre méthode de paiement.</p>
+                        <div class="space-y-2">
+                            <button id="retry-button" 
+                                    class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors">
+                                <i class="fas fa-redo mr-2"></i>
+                                Réessayer le paiement
+                            </button>
+                            <br>
+                            <a href="{% url 'store:payment' order.order_number %}" 
+                               class="inline-flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors">
+                                <i class="fas fa-arrow-left mr-2"></i>
+                                Retour au paiement
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Statut EXPIRED -->
+                    <div id="status-expired" class="{% if transaction.status != 'EXPIRED' %}hidden{% endif %}">
+                        <div class="mb-4">
+                            <i class="fas fa-clock text-gray-500 text-4xl"></i>
+                        </div>
+                        <h3 class="text-xl font-semibold text-gray-600 mb-2">Paiement expiré</h3>
+                        <p class="text-gray-600 mb-4">Le délai de paiement a expiré. Veuillez initier un nouveau paiement.</p>
+                        <div class="space-y-2">
+                            <button id="retry-button" 
+                                    class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors">
+                                <i class="fas fa-redo mr-2"></i>
+                                Nouveau paiement
+                            </button>
+                            <br>
+                            <a href="{% url 'store:payment' order.order_number %}" 
+                               class="inline-flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors">
+                                <i class="fas fa-arrow-left mr-2"></i>
+                                Retour au paiement
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Informations supplémentaires -->
+            <div class="border-t border-gray-200 pt-6">
+                <h3 class="text-sm font-medium text-gray-900 mb-3">Informations techniques</h3>
+                <div class="grid grid-cols-2 gap-4 text-sm text-gray-600">
+                    <div>
+                        <span>Transaction ID:</span>
+                        <p class="font-mono text-xs">{{ transaction.transaction_id }}</p>
+                    </div>
+                    <div>
+                        <span>CinetPay ID:</span>
+                        <p class="font-mono text-xs">{{ transaction.cinetpay_transaction_id|default:"-" }}</p>
+                    </div>
+                    <div>
+                        <span>Date de création:</span>
+                        <p>{{ transaction.created_at|date:"d/m/Y H:i" }}</p>
+                    </div>
+                    <div>
+                        <span>Expire le:</span>
+                        <p>{{ transaction.expires_at|date:"d/m/Y H:i" }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="mt-6 text-center">
+            <a href="{% url 'store:my_orders' %}" class="text-blue-600 hover:text-blue-700 font-medium">
+                <i class="fas fa-list mr-1"></i>
+                Voir toutes mes commandes
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+// Vérification automatique du statut
+let checkInterval;
+
+function checkPaymentStatus() {
+    fetch('{% url "store:check_cinetpay_status_api" transaction.transaction_id %}')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                updateStatusDisplay(data.status);
+                
+                // Si le paiement est terminé (succès ou échec), arrêter la vérification
+                if (data.status === 'SUCCESS' || data.status === 'FAILED' || data.status === 'CANCELLED' || data.status === 'EXPIRED') {
+                    clearInterval(checkInterval);
+                    
+                    // Si succès, rediriger après 3 secondes
+                    if (data.status === 'SUCCESS') {
+                        setTimeout(() => {
+                            window.location.href = '{% url "store:order_detail" order.order_number %}';
+                        }, 3000);
+                    }
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Erreur lors de la vérification du statut:', error);
+        });
+}
+
+function updateStatusDisplay(status) {
+    // Masquer tous les statuts
+    document.querySelectorAll('[id^="status-"]').forEach(el => {
+        el.classList.add('hidden');
+    });
+    
+    // Afficher le statut correspondant
+    const statusElement = document.getElementById(`status-${status.toLowerCase()}`);
+    if (statusElement) {
+        statusElement.classList.remove('hidden');
+    }
+}
+
+// Démarrer la vérification automatique si le statut n'est pas final
+{% if transaction.status not in 'SUCCESS,FAILED,CANCELLED,EXPIRED' %}
+checkInterval = setInterval(checkPaymentStatus, 5000); // Vérifier toutes les 5 secondes
+{% endif %}
+
+// Gestion du bouton de réessai
+document.getElementById('retry-button')?.addEventListener('click', function() {
+    this.disabled = true;
+    this.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Traitement...';
+    
+    fetch('{% url "store:retry_cinetpay_payment" transaction.transaction_id %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            window.location.href = data.payment_url;
+        } else {
+            alert('Erreur: ' + data.error);
+            this.disabled = false;
+            this.innerHTML = '<i class="fas fa-redo mr-2"></i>Réessayer le paiement';
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        alert('Erreur de connexion. Veuillez réessayer.');
+        this.disabled = false;
+        this.innerHTML = '<i class="fas fa-redo mr-2"></i>Réessayer le paiement';
+    });
+});
+</script>
+{% endblock %}

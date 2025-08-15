@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.utils.html import format_html
 from django.urls import reverse
 from django.utils.safestring import mark_safe
-from .models import Category, Product, Order, OrderItem, Payment, Download, Review, VideoSequence, BookCollection, PersonalDevelopmentSection, Contact
+from .models import Category, Product, Order, OrderItem, Payment, Download, Review, VideoSequence, BookCollection, PersonalDevelopmentSection, Contact, CinetPayTransaction
 
 
 @admin.register(Category)
@@ -368,6 +368,60 @@ class ContactAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         return super().get_queryset(request)
 
+
+@admin.register(CinetPayTransaction)
+class CinetPayTransactionAdmin(admin.ModelAdmin):
+    list_display = [
+        'transaction_id', 'customer_name', 'customer_email', 'amount_fcfa',
+        'status', 'created_at', 'expires_at'
+    ]
+    list_filter = ['status', 'created_at', 'expires_at']
+    search_fields = [
+        'transaction_id', 'cinetpay_transaction_id', 'customer_name', 
+        'customer_email', 'order__order_number'
+    ]
+    readonly_fields = [
+        'transaction_id', 'cinetpay_transaction_id', 'payment_token',
+        'created_at', 'updated_at', 'initiated_at', 'completed_at', 'expires_at'
+    ]
+    
+    fieldsets = (
+        ('Informations de base', {
+            'fields': ('transaction_id', 'order', 'payment')
+        }),
+        ('Informations CinetPay', {
+            'fields': ('cinetpay_transaction_id', 'payment_token')
+        }),
+        ('Montants', {
+            'fields': ('amount_fcfa', 'amount_eur')
+        }),
+        ('Informations client', {
+            'fields': ('customer_name', 'customer_email', 'customer_phone')
+        }),
+        ('Statut', {
+            'fields': ('status',)
+        }),
+        ('Réponse de la passerelle', {
+            'fields': ('gateway_response',),
+            'classes': ('collapse',)
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at', 'initiated_at', 'completed_at', 'expires_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('order', 'payment')
+    
+    def has_add_permission(self, request):
+        return False  # Les transactions sont créées automatiquement
+    
+    def has_change_permission(self, request, obj=None):
+        return True  # Permettre la modification du statut
+    
+    def has_delete_permission(self, request, obj=None):
+        return False  # Ne pas permettre la suppression
 
 # Configuration de l'interface d'administration
 admin.site.site_header = "NovaLearn - Administration"
