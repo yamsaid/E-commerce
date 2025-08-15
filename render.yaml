@@ -7,9 +7,9 @@ services:
     startCommand: gunicorn novalearnweb.wsgi:application
     envVars:
       - key: PYTHON_VERSION
-        value: 3.11.0
+        value: 3.13.0
       - key: DJANGO_SETTINGS_MODULE
-        value: novalearnweb.settings
+        value: novalearnweb.production
       - key: SECRET_KEY
         generateValue: true
       - key: DEBUG
@@ -18,5 +18,14 @@ services:
         value: ".onrender.com"
       - key: CINETPAY_ENVIRONMENT
         value: PROD
+      - key: DATABASE_URL
+        fromDatabase:
+          name: novalearnweb-db
+          property: connectionString
     healthCheckPath: /
     autoDeploy: true
+
+databases:
+  - name: novalearnweb-db
+    databaseName: novalearnweb
+    user: novalearnweb

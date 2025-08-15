@@ -86,11 +86,15 @@ WSGI_APPLICATION = 'novalearnweb.wsgi.application'
 DATABASE_URL = os.getenv('DATABASE_URL')
 if DATABASE_URL and DATABASE_URL.strip():
     try:
+        # Try to parse and test PostgreSQL connection
+        import psycopg2
         DATABASES = {
             'default': dj_database_url.parse(DATABASE_URL)
         }
-    except Exception:
-        # Fallback to SQLite if DATABASE_URL parsing fails
+        print("Using PostgreSQL database")
+    except (ImportError, Exception) as e:
+        print(f"PostgreSQL not available ({e}), falling back to SQLite")
+        # Fallback to SQLite if DATABASE_URL parsing fails or psycopg2 not available
         DATABASES = {
             'default': {
                 'ENGINE': 'django.db.backends.sqlite3',
@@ -98,6 +102,7 @@ if DATABASE_URL and DATABASE_URL.strip():
             }
         }
 else:
+    print("No DATABASE_URL found, using SQLite")
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',

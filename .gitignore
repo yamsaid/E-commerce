@@ -24,13 +24,13 @@ debug_download.py
 test_*.py
 
 # Documentation
-*.md
+README_*.md
 MOBILE_MONEY_IMPLEMENTATION.md
 CINETPAY_*.md
 GUIDE_*.md
 CHANGES_SUMMARY.md
 OAUTH_SETUP.md
-DOWNLOAD_SYSTEM.md
+DOWNLOAD_*.md
 
 # Fichiers système
 .DS_Store
