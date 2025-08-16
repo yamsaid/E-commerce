@@ -14,6 +14,18 @@ echo "🌐 Host: $HOST"
 echo "🔧 Workers: 2"
 echo "⏱️  Timeout: 120s"
 
+# Diagnostic des variables d'environnement
+echo "🔍 Diagnostic des variables d'environnement..."
+echo "SECRET_KEY: ${SECRET_KEY:+SET (length: ${#SECRET_KEY})}"
+echo "DATABASE_URL: ${DATABASE_URL:+SET}"
+echo "DJANGO_SETTINGS_MODULE: ${DJANGO_SETTINGS_MODULE:-NOT SET}"
+echo "DEBUG: ${DEBUG:-NOT SET}"
+
+# Vérifier SECRET_KEY
+if [ -z "$SECRET_KEY" ]; then
+    echo "⚠️  WARNING: SECRET_KEY not set, Django will generate one"
+fi
+
 # Collecter les fichiers statiques si nécessaire
 if [ ! -d "staticfiles" ]; then
     echo "📁 Collecte des fichiers statiques..."

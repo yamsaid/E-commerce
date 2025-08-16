@@ -16,9 +16,19 @@ DEBUG = False
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('SECRET_KEY')
-if not SECRET_KEY:
-    print("WARNING: SECRET_KEY not set, using fallback")
-    SECRET_KEY = 'django-insecure-fallback-key-for-production'
+print(f"SECRET_KEY from env: {'SET' if SECRET_KEY else 'NOT SET'}")
+
+if not SECRET_KEY or SECRET_KEY.strip() == '':
+    print("WARNING: SECRET_KEY not set or empty, using fallback")
+    import secrets
+    SECRET_KEY = secrets.token_urlsafe(50)
+    print(f"Generated fallback SECRET_KEY: {SECRET_KEY[:20]}...")
+
+# Ensure SECRET_KEY is not empty
+if not SECRET_KEY or SECRET_KEY.strip() == '':
+    raise ValueError("SECRET_KEY cannot be empty in production")
+
+print(f"Final SECRET_KEY length: {len(SECRET_KEY)}")
 
 # Configure allowed hosts
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '.onrender.com').split(',')

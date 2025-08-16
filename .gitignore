@@ -31,6 +31,9 @@ GUIDE_*.md
 CHANGES_SUMMARY.md
 OAUTH_SETUP.md
 DOWNLOAD_*.md
+TROUBLESHOOTING.md
+ENV_*.md
+SOLUTION_SECRET_KEY.md
 
 # Fichiers système
 .DS_Store
