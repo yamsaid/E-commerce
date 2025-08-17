@@ -51,8 +51,7 @@ python manage.py createsuperuser
 python manage.py runserver
 ```
 
-L'application sera accessible à l'adresse : [http://127.0.0.1:8000](https://novalearn.onrender.com
-)
+L'application sera accessible à l'adresse : [https://novalearn.onrender.com]
 
 ## Configuration
 
